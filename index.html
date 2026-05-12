@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Rocket Builder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #0a0e27;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        canvas {
+            display: block;
+            border: 3px solid #64b5f6;
+            background: linear-gradient(to bottom, #001a4d 0%, #0d47a1 50%, #1a237e 100%);
+            width: 100%;
+            height: auto;
+            cursor: none;
+            box-shadow: 0 0 20px rgba(100, 181, 246, 0.5);
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        .header {
+            pointer-events: auto;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(100, 181, 246, 0.8);
+        }
+
+        .score {
+            font-size: 18px;
+            color: #64b5f6;
+        }
+
+        .high-score {
+            font-size: 14px;
+            color: #81c784;
+            margin-top: 5px;
+        }
+
+        .controls {
+            pointer-events: auto;
+            background: rgba(10, 14, 39, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #64b5f6;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .fuel-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border: 2px solid #64b5f6;
+            margin: 10px 0;
+            position: relative;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .fuel-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #81c784, #64b5f6);
+            width: 100%;
+            transition: width 0.1s;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        button {
+            pointer-events: auto;
+            padding: 12px 20px;
+            font-size: 14px;
+            background: linear-gradient(135deg, #64b5f6, #42a5f5);
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(100, 181, 246, 0.8);
+            background: linear-gradient(135deg, #42a5f5, #2196f3);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #0a0e27;
+            padding: 40px;
+            border-radius: 10px;
+            border: 3px solid #64b5f6;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(100, 181, 246, 0.5);
+        }
+
+        .modal-content h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #81c784;
+        }
+
+        .modal-content p {
+            font-size: 16px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .planet-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .planet-btn {
+            padding: 20px;
+            background: #1a237e;
+            border: 2px solid #64b5f6;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .planet-btn:hover {
+            background: #42a5f5;
+            transform: scale(1.05);
+        }
+
+        .planet-btn.selected {
+            background: #81c784;
+            border-color: #81c784;
+        }
+
+        .instructions {
+            text-align: left;
+            background: rgba(100, 181, 246, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #64b5f6;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #81c784;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .modal-content {
+                padding: 30px 20px;
+            }
+
+            button {
+                padding: 10px 15px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div class="ui-overlay">
+            <div class="header">
+                <h1>🚀 Space Rocket Builder</h1>
+                <div class="score">Score: <span id="scoreDisplay">0</span></div>
+                <div class="high-score">High Score: <span id="highScoreDisplay">0</span></div>
+            </div>
+            <div class="controls">
+                <div id="buildPhaseUI">
+                    <div>
+                        <strong>Power:</strong> <span id="powerDisplay">0</span> |
+                        <strong>Weight:</strong> <span id="weightDisplay">0</span>
+                    </div>
+                    <div class="buttons">
+                        <button id="addFuelBtn">Add Fuel Tank</button>
+                        <button id="addBoosterBtn">Add Booster</button>
+                        <button id="addPayloadBtn">Add Payload</button>
+                        <button id="addShieldBtn">Add Heat Shield</button>
+                        <button id="launchBtn" style="background: linear-gradient(135deg, #81c784, #66bb6a); font-size: 16px; padding: 15px 30px;">LAUNCH!</button>
+                    </div>
+                </div>
+
+                <div id="flightPhaseUI" style="display: none;">
+                    <div style="margin-bottom: 15px;">
+                        <div><strong>Altitude:</strong> <span id="altitudeDisplay">0</span>km</div>
+                        <div><strong>Obstacles Dodged:</strong> <span id="dodgedDisplay">0</span></div>
+                    </div>
+                    <div class="fuel-bar">
+                        <div class="fuel-fill" id="fuelBar"></div>
+                    </div>
+                    <div style="font-size: 12px;">Use ARROW KEYS or tilt device to steer</div>
+                </div>
+
+                <div id="landingPhaseUI" style="display: none;">
+                    <div style="margin-bottom: 15px;">
+                        <strong>Landing on: <span id="selectedPlanetDisplay">Moon</span></strong>
+                    </div>
+                    <div style="font-size: 14px; color: #81c784; margin-bottom: 10px;">
+                        Click when you're in the GREEN ZONE to land safely!
+                    </div>
+                    <button id="landBtn" style="width: 100%; font-size: 18px; padding: 20px;">LAND!</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="startModal" class="modal active">
+        <div class="modal-content">
+            <h2>🚀 Space Rocket Builder</h2>
+            <div class="instructions">
+                <h3>How to Play:</h3>
+                <ul>
+                    <li><strong>BUILD:</strong> Click buttons to add rocket parts and increase power</li>
+                    <li><strong>LAUNCH:</strong> Click LAUNCH when ready to zoom to space!</li>
+                    <li><strong>FLY:</strong> Use arrow keys to dodge asteroids and obstacles</li>
+                    <li><strong>LAND:</strong> Time your landing perfectly on a planet for points!</li>
+                </ul>
+            </div>
+            <button id="startBtn" style="width: 100%; font-size: 18px; padding: 15px;">START GAME</button>
+        </div>
+    </div>
+
+    <div id="planetModal" class="modal">
+        <div class="modal-content">
+            <h2>Choose Your Destination</h2>
+            <p>Select a planet to land on:</p>
+            <div class="planet-selector">
+                <div class="planet-btn" data-planet="moon">🌙 Moon</div>
+                <div class="planet-btn" data-planet="mars">🔴 Mars</div>
+                <div class="planet-btn" data-planet="jupiter">🟠 Jupiter</div>
+                <div class="planet-btn" data-planet="saturn">💛 Saturn</div>
+            </div>
+            <button id="confirmPlanetBtn" disabled>Continue to Landing</button>
+        </div>
+    </div>
+
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content">
+            <h2 id="gameOverTitle">Mission Complete!</h2>
+            <p id="gameOverMessage">Great job!</p>
+            <div style="font-size: 28px; color: #81c784; margin: 20px 0; font-weight: bold;">
+                Final Score: <span id="finalScore">0</span>
+            </div>
+            <div id="newHighScore" style="color: #ffc107; font-size: 16px; margin-bottom: 20px; display: none;">
+                🎉 NEW HIGH SCORE! 🎉
+            </div>
+            <button id="playAgainBtn" style="width: 100%; font-size: 16px; padding: 15px;">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game Configuration
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 600;
+        const GRAVITY = 0.3;
+
+        // Game States
+        const GAME_STATE = {
+            BUILD: 'build',
+            LAUNCH: 'launch',
+            FLIGHT: 'flight',
+            PLANET_SELECT: 'planetSelect',
+            LANDING: 'landing',
+            GAME_OVER: 'gameOver'
+        };
+
+        // Game Object
+        const game = {
+            state: GAME_STATE.BUILD,
+            score: 0,
+            highScore: localStorage.getItem('rocketHighScore') || 0,
+            currentPlanet: null,
+
+            // Rocket parts
+            rocket: {
+                fuelTanks: 0,
+                boosters: 0,
+                payloads: 0,
+                shields: 0,
+                x: 400,
+                y: 500,
+                vx: 0,
+                vy: 0,
+                angle: 0,
+                fuel: 0,
+                maxFuel: 0,
+                width: 30,
+                height: 60
+            },
+
+            flight: {
+                altitude: 0,
+                dodgedObstacles: 0,
+                obstacles: [],
+                landed: false,
+                landingAttempts: 0
+            },
+
+            input: {
+                left: false,
+                right: false,
+                landButtonPressed: false
+            },
+
+            planets: {
+                moon: { color: '#d3d3d3', name: 'Moon', x: 400, y: 100 },
+                mars: { color: '#e27b58', name: 'Mars', x: 400, y: 100 },
+                jupiter: { color: '#c88b3a', name: 'Jupiter', x: 400, y: 80 },
+                saturn: { color: '#fad5a5', name: 'Saturn', x: 400, y: 80 }
+            }
+        };
+
+        // DOM Elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startModal = document.getElementById('startModal');
+        const planetModal = document.getElementById('planetModal');
+        const gameOverModal = document.getElementById('gameOverModal');
+
+        // Set canvas size
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvas.width = Math.min(CANVAS_WIDTH, window.innerWidth - 20);
+            canvas.height = canvas.width * (CANVAS_HEIGHT / CANVAS_WIDTH);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Event Listeners
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('launchBtn').addEventListener('click', launchRocket);
+        document.getElementById('addFuelBtn').addEventListener('click', () => addRocketPart('fuel'));
+        document.getElementById('addBoosterBtn').addEventListener('click', () => addRocketPart('booster'));
+        document.getElementById('addPayloadBtn').addEventListener('click', () => addRocketPart('payload'));
+        document.getElementById('addShieldBtn').addEventListener('click', () => addRocketPart('shield'));
+        document.getElementById('landBtn').addEventListener('click', () => { game.input.landButtonPressed = true; });
+        document.getElementById('playAgainBtn').addEventListener('click', resetGame);
+        document.getElementById('confirmPlanetBtn').addEventListener('click', confirmPlanetSelection);
+
+        // Planet selection
+        document.querySelectorAll('.planet-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.planet-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                game.currentPlanet = this.dataset.planet;
+                document.getElementById('confirmPlanetBtn').disabled = false;
+            });
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') game.input.left = true;
+            if (e.key === 'ArrowRight') game.input.right = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') game.input.left = false;
+            if (e.key === 'ArrowRight') game.input.right = false;
+        });
+
+        // Device tilt support
+        window.addEventListener('deviceorientation', (e) => {
+            const gamma = e.gamma; // -90 to 90 (left and right)
+            if (Math.abs(gamma) > 10) {
+                game.input.left = gamma > 10;
+                game.input.right = gamma < -10;
+            }
+        });
+
+        function addRocketPart(type) {
+            if (game.state !== GAME_STATE.BUILD) return;
+
+            switch(type) {
+                case 'fuel':
+                    game.rocket.fuelTanks++;
+                    game.rocket.maxFuel += 100;
+                    break;
+                case 'booster':
+                    game.rocket.boosters++;
+                    break;
+                case 'payload':
+                    game.rocket.payloads++;
+                    break;
+                case 'shield':
+                    game.rocket.shields++;
+                    break;
+            }
+
+            updateUI();
+        }
+
+        function updateUI() {
+            const power = game.rocket.boosters * 20 + game.rocket.fuelTanks * 10 + game.rocket.payloads * 5;
+            const weight = game.rocket.fuelTanks * 2 + game.rocket.boosters * 3 + game.rocket.payloads * 5 + game.rocket.shields * 4;
+
+            document.getElementById('powerDisplay').textContent = power;
+            document.getElementById('weightDisplay').textContent = weight;
+            document.getElementById('scoreDisplay').textContent = game.score;
+            document.getElementById('highScoreDisplay').textContent = game.highScore;
+
+            if (game.state === GAME_STATE.FLIGHT) {
+                document.getElementById('altitudeDisplay').textContent = Math.floor(game.flight.altitude);
+                document.getElementById('dodgedDisplay').textContent = game.flight.dodgedObstacles;
+                document.getElementById('fuelBar').style.width = (game.rocket.fuel / game.rocket.maxFuel * 100) + '%';
+            }
+        }
+
+        function startGame() {
+            game.state = GAME_STATE.BUILD;
+            startModal.classList.remove('active');
+            document.getElementById('buildPhaseUI').style.display = 'block';
+            updateUI();
+        }
+
+        function launchRocket() {
+            if (game.rocket.maxFuel === 0) {
+                alert('Add at least one Fuel Tank before launching!');
+                return;
+            }
+
+            game.state = GAME_STATE.LAUNCH;
+            game.rocket.fuel = game.rocket.maxFuel;
+            game.flight.altitude = 0;
+            game.flight.dodgedObstacles = 0;
+            game.flight.obstacles = [];
+
+            document.getElementById('buildPhaseUI').style.display = 'none';
+            document.getElementById('flightPhaseUI').style.display = 'block';
+
+            setTimeout(() => {
+                game.state = GAME_STATE.FLIGHT;
+            }, 1000);
+        }
+
+        function spawnObstacle() {
+            if (Math.random() > 0.02 || game.flight.obstacles.length > 5) return;
+
+            const obstacle = {
+                x: Math.random() * (canvas.width * canvas.width / CANVAS_WIDTH) - 40,
+                y: -20,
+                width: 40,
+                height: 40,
+                type: Math.random() > 0.6 ? 'asteroid' : 'debris'
+            };
+            game.flight.obstacles.push(obstacle);
+        }
+
+        function updateFlight() {
+            if (game.state !== GAME_STATE.FLIGHT) return;
+
+            // Steering
+            if (game.input.left) {
+                game.rocket.vx -= 2;
+                game.rocket.angle = -0.3;
+            }
+            if (game.input.right) {
+                game.rocket.vx += 2;
+                game.rocket.angle = 0.3;
+            }
+            if (!game.input.left && !game.input.right) {
+                game.rocket.angle *= 0.9;
+            }
+
+            game.rocket.vx *= 0.95; // Friction
+            game.rocket.vx = Math.max(-8, Math.min(8, game.rocket.vx)); // Max speed
+
+            // Movement
+            const scaleX = canvas.width / CANVAS_WIDTH;
+            const scaleY = canvas.height / CANVAS_HEIGHT;
+
+            game.rocket.x += game.rocket.vx * scaleX;
+            game.rocket.y -= 5; // Upward movement
+
+            // Bounds checking
+            if (game.rocket.x < 0) game.rocket.x = 0;
+            if (game.rocket.x > canvas.width - 30) game.rocket.x = canvas.width - 30;
+
+            // Altitude calculation
+            game.flight.altitude = Math.max(0, CANVAS_HEIGHT * scaleY - game.rocket.y) / scaleY;
+
+            // Fuel consumption
+            game.rocket.fuel = Math.max(0, game.rocket.fuel - 0.3);
+
+            // Check if reached space
+            if (game.flight.altitude > 400 || game.rocket.fuel <= 0) {
+                game.state = GAME_STATE.PLANET_SELECT;
+                document.getElementById('flightPhaseUI').style.display = 'none';
+                planetModal.classList.add('active');
+                return;
+            }
+
+            // Spawn and update obstacles
+            spawnObstacle();
+            updateObstacles();
+        }
+
+        function updateObstacles() {
+            const scaleY = canvas.height / CANVAS_HEIGHT;
+
+            game.flight.obstacles = game.flight.obstacles.filter(obs => {
+                obs.y += 5;
+
+                // Collision detection
+                if (checkCollision(game.rocket, obs)) {
+                    game.score += 10;
+                    game.flight.dodgedObstacles++;
+                    return false; // Remove obstacle
+                }
+
+                return obs.y < canvas.height;
+            });
+        }
+
+        function checkCollision(rocket, obstacle) {
+            return rocket.x < obstacle.x + obstacle.width &&
+                   rocket.x + rocket.width > obstacle.x &&
+                   rocket.y < obstacle.y + obstacle.height &&
+                   rocket.y + rocket.height > obstacle.y;
+        }
+
+        function confirmPlanetSelection() {
+            document.getElementById('selectedPlanetDisplay').textContent =
+                game.planets[game.currentPlanet].name;
+            planetModal.classList.remove('active');
+            game.state = GAME_STATE.LANDING;
+            document.getElementById('landingPhaseUI').style.display = 'block';
+            game.flight.landingAttempts = 0;
+        }
+
+        function updateLanding() {
+            if (game.state !== GAME_STATE.LANDING) return;
+
+            const scaleY = canvas.height / CANVAS_HEIGHT;
+            game.rocket.y -= 3;
+
+            if (game.input.landButtonPressed) {
+                game.input.landButtonPressed = false;
+                game.flight.landingAttempts++;
+
+                // Landing zone is roughly 40% to 60% of screen width
+                const landingZoneStart = canvas.width * 0.4;
+                const landingZoneEnd = canvas.width * 0.6;
+                const rocketCenter = game.rocket.x + game.rocket.width / 2;
+
+                if (rocketCenter > landingZoneStart && rocketCenter < landingZoneEnd) {
+                    // Successful landing!
+                    game.score += 100 + (200 * (game.rocket.fuel / game.rocket.maxFuel));
+
+                    if (game.score > game.highScore) {
+                        game.highScore = game.score;
+                        localStorage.setItem('rocketHighScore', game.highScore);
+                        document.getElementById('newHighScore').style.display = 'block';
+                    } else {
+                        document.getElementById('newHighScore').style.display = 'none';
+                    }
+
+                    game.state = GAME_STATE.GAME_OVER;
+                    document.getElementById('gameOverTitle').textContent = '🎉 Mission Complete!';
+                    document.getElementById('gameOverMessage').textContent =
+                        `You landed safely on ${game.planets[game.currentPlanet].name}! Great job!`;
+                    document.getElementById('finalScore').textContent = game.score;
+                    document.getElementById('landingPhaseUI').style.display = 'none';
+                    gameOverModal.classList.add('active');
+                } else if (game.flight.landingAttempts > 1) {
+                    // Crashed!
+                    game.score += 30;
+                    game.state = GAME_STATE.GAME_OVER;
+                    document.getElementById('gameOverTitle').textContent = '💥 Crash Landing!';
+                    document.getElementById('gameOverMessage').textContent =
+                        `You crashed on ${game.planets[game.currentPlanet].name}! But hey, you survived!`;
+                    document.getElementById('finalScore').textContent = game.score;
+                    document.getElementById('landingPhaseUI').style.display = 'none';
+                    gameOverModal.classList.add('active');
+                }
+            }
+
+            // Reach planet
+            if (game.rocket.y < 100 * scaleY) {
+                game.rocket.y = 100 * scaleY;
+            }
+        }
+
+        function resetGame() {
+            game.state = GAME_STATE.BUILD;
+            game.score = 0;
+            game.currentPlanet = null;
+            game.rocket = {
+                fuelTanks: 0,
+                boosters: 0,
+                payloads: 0,
+                shields: 0,
+                x: 400,
+                y: 500,
+                vx: 0,
+                vy: 0,
+                angle: 0,
+                fuel: 0,
+                maxFuel: 0,
+                width: 30,
+                height: 60
+            };
+            game.flight.obstacles = [];
+            document.getElementById('buildPhaseUI').style.display = 'block';
+            document.getElementById('flightPhaseUI').style.display = 'none';
+            document.getElementById('landingPhaseUI').style.display = 'none';
+            gameOverModal.classList.remove('active');
+            document.querySelectorAll('.planet-btn').forEach(b => b.classList.remove('selected'));
+            document.getElementById('confirmPlanetBtn').disabled = true;
+            updateUI();
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#001a4d';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw stars
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = 0.8;
+            for (let i = 0; i < 50; i++) {
+                const x = (i * 123) % canvas.width;
+                const y = (i * 456) % canvas.height;
+                ctx.fillRect(x, y, 2, 2);
+            }
+            ctx.globalAlpha = 1;
+
+            // Draw planet during landing
+            if (game.state === GAME_STATE.LANDING || game.state === GAME_STATE.PLANET_SELECT) {
+                const planet = game.planets[game.currentPlanet];
+                ctx.fillStyle = planet.color;
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, 60, 40, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Planet rings (Saturn)
+                if (game.currentPlanet === 'saturn') {
+                    ctx.strokeStyle = planet.color;
+                    ctx.lineWidth = 8;
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath();
+                    ctx.ellipse(canvas.width / 2, 60, 70, 15, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+            }
+
+            // Draw obstacles
+            game.flight.obstacles.forEach(obs => {
+                if (obs.type === 'asteroid') {
+                    ctx.fillStyle = '#8B7355';
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                    ctx.strokeStyle = '#D2691E';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+                } else {
+                    ctx.fillStyle = '#555';
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.width / 2, obs.y + obs.height / 2, obs.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Draw rocket
+            drawRocket();
+
+            // Draw landing zone hint during landing
+            if (game.state === GAME_STATE.LANDING) {
+                const zoneStart = canvas.width * 0.4;
+                const zoneEnd = canvas.width * 0.6;
+                ctx.fillStyle = 'rgba(129, 199, 132, 0.3)';
+                ctx.fillRect(zoneStart, canvas.height - 50, zoneEnd - zoneStart, 50);
+                ctx.strokeStyle = '#81c784';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(zoneStart, canvas.height - 50, zoneEnd - zoneStart, 50);
+            }
+        }
+
+        function drawRocket() {
+            const scaleX = canvas.width / CANVAS_WIDTH;
+            const scaleY = canvas.height / CANVAS_HEIGHT;
+
+            ctx.save();
+            ctx.translate(game.rocket.x + game.rocket.width / 2, game.rocket.y + game.rocket.height / 2);
+            ctx.rotate(game.rocket.angle);
+            ctx.translate(-(game.rocket.width / 2), -(game.rocket.height / 2));
+
+            // Rocket body
+            ctx.fillStyle = '#FF6B6B';
+            ctx.fillRect(game.rocket.width * 0.2, 0, game.rocket.width * 0.6, game.rocket.height);
+
+            // Rocket tip
+            ctx.fillStyle = '#FFD93D';
+            ctx.beginPath();
+            ctx.moveTo(game.rocket.width / 2, 0);
+            ctx.lineTo(game.rocket.width * 0.1, game.rocket.height * 0.2);
+            ctx.lineTo(game.rocket.width * 0.9, game.rocket.height * 0.2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Fins
+            ctx.fillStyle = '#42A5F5';
+            ctx.fillRect(0, game.rocket.height * 0.7, game.rocket.width * 0.15, game.rocket.height * 0.3);
+            ctx.fillRect(game.rocket.width * 0.85, game.rocket.height * 0.7, game.rocket.width * 0.15, game.rocket.height * 0.3);
+
+            // Flame
+            if (game.state === GAME_STATE.FLIGHT || game.state === GAME_STATE.LAUNCH) {
+                ctx.fillStyle = '#FF4500';
+                ctx.beginPath();
+                ctx.moveTo(game.rocket.width * 0.35, game.rocket.height);
+                ctx.lineTo(game.rocket.width * 0.65, game.rocket.height);
+                ctx.lineTo(game.rocket.width / 2, game.rocket.height + 15);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.moveTo(game.rocket.width * 0.4, game.rocket.height);
+                ctx.lineTo(game.rocket.width * 0.6, game.rocket.height);
+                ctx.lineTo(game.rocket.width / 2, game.rocket.height + 10);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            updateFlight();
+            updateLanding();
+            draw();
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize high score display
+        document.getElementById('highScoreDisplay').textContent = game.highScore;
+
+        // Start game loop
+        gameLoop();
+    </script>
+</body>
+</html>
