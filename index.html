@@ -3,579 +3,1172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Rocket Simulator - Realistic Physics</title>
+    <title>🚀 Space Rocket Simulator</title>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:monospace; background:#050918; color:#0f0; overflow:hidden; }
-        #main { display:flex; width:100vw; height:100vh; }
-        #canvas { flex:1; background:linear-gradient(to bottom,#001 0%,#014 50%,#004 100%); }
-        #panel { width:300px; background:#0a0f1f; border-left:2px solid #0f0; overflow-y:auto; padding:12px; font-size:12px; line-height:1.4; }
-        h2 { color:#0f0; margin:12px 0 6px 0; border-bottom:1px solid #0f0; }
-        h3 { color:#f70; margin-top:8px; font-size:12px; }
-        input, select, button {
-            background:#1a2540; border:1px solid #0f0; color:#0f0; padding:4px;
-            margin:3px 0; width:100%; font-family:monospace; font-size:11px; cursor:pointer;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #000;
+            color: #fff;
+            display: flex;
         }
-        button:hover { background:#2a4560; }
-        .stat { display:flex; justify-content:space-between; margin:2px 0; }
-        .stat span:last-child { color:#f0f; text-align:right; }
-        .warn { color:#f77; font-weight:bold; }
-        .success { color:#7f7; }
-        #gameOverlay { display:none; position:absolute; top:0; left:0; right:0; bottom:0;
-            background:rgba(0,0,0,0.9); justify-content:center; align-items:center; z-index:100; }
-        .modal { background:#0a0f1f; border:2px solid #0f0; padding:20px; max-width:400px; text-align:center; }
-        .modal h2 { margin-top:0; }
-        .modal p { margin:8px 0; line-height:1.6; }
+
+        #stage {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Top-left HUD overlay during flight */
+        #hud {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(10, 20, 50, 0.85);
+            border: 1px solid #4a90e2;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            min-width: 220px;
+            backdrop-filter: blur(6px);
+        }
+
+        #hud .row {
+            display: flex;
+            justify-content: space-between;
+            margin: 3px 0;
+        }
+
+        #hud .row .label { color: #8aabd8; }
+        #hud .row .val { color: #fff; font-weight: bold; font-family: monospace; }
+        #hud .row .val.warn { color: #ff6b35; }
+        #hud .row .val.crit { color: #ff3030; animation: pulse 0.5s infinite; }
+        @keyframes pulse { 50% { opacity: 0.5; } }
+
+        /* Throttle bar at bottom of screen */
+        #throttleBar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 360px;
+            height: 32px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #4a90e2;
+            border-radius: 16px;
+            overflow: hidden;
+            display: none;
+        }
+
+        #throttleFill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b35, #f9c80e);
+            width: 0%;
+            transition: width 0.05s linear;
+        }
+
+        #throttleLabel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+
+        /* Right panel */
+        #panel {
+            width: 340px;
+            background: linear-gradient(180deg, #0a1530 0%, #050918 100%);
+            border-left: 2px solid #4a90e2;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #panel::-webkit-scrollbar { width: 8px; }
+        #panel::-webkit-scrollbar-track { background: #050918; }
+        #panel::-webkit-scrollbar-thumb { background: #2a5599; border-radius: 4px; }
+
+        .section {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(74, 144, 226, 0.2);
+        }
+
+        .section h2 {
+            font-size: 13px;
+            color: #4a90e2;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .section h2 .icon { margin-right: 6px; }
+
+        .field { margin-bottom: 10px; }
+        .field label {
+            display: block;
+            font-size: 11px;
+            color: #8aabd8;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            background: #1a2540;
+            border: 1px solid #2a5599;
+            color: #fff;
+            padding: 8px 10px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        select:focus, input:focus { outline: none; border-color: #4a90e2; }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1a2540;
+            border: 1px solid #2a5599;
+            border-radius: 5px;
+            padding: 8px 10px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-bottom: 6px;
+            transition: all 0.15s;
+        }
+
+        .toggle:hover { border-color: #4a90e2; background: #213055; }
+        .toggle.on { background: #1d4d2e; border-color: #4ade80; }
+        .toggle.on .check::after { content: '✓'; color: #4ade80; font-weight: bold; }
+        .toggle .check {
+            width: 18px; height: 18px;
+            border: 1px solid #4a90e2;
+            border-radius: 3px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .toggle .meta { font-size: 11px; color: #8aabd8; }
+
+        /* Stats grid */
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 10px;
+            font-size: 12px;
+        }
+        .stat-item {
+            background: rgba(74, 144, 226, 0.08);
+            padding: 6px 8px;
+            border-radius: 4px;
+            border-left: 2px solid #4a90e2;
+        }
+        .stat-item .label {
+            color: #8aabd8;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-item .val {
+            color: #fff;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .stat-item.highlight {
+            background: rgba(74, 222, 128, 0.15);
+            border-left-color: #4ade80;
+        }
+        .stat-item.highlight .val { color: #4ade80; }
+        .stat-item.warn .val { color: #ff6b35; }
+
+        /* Mission buttons */
+        .mission-btn {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            border: 1px solid #4a90e2;
+            color: #fff;
+            padding: 12px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.15s;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .mission-btn:hover {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            transform: translateX(2px);
+        }
+
+        .mission-btn .emoji { font-size: 22px; margin-right: 10px; }
+        .mission-btn .title { font-weight: bold; font-size: 13px; }
+        .mission-btn .desc { font-size: 11px; color: #c0d5f0; }
+
+        .mission-btn.hard { background: linear-gradient(135deg, #7c2d12, #c2410c); border-color: #ea580c; }
+        .mission-btn.hard:hover { background: linear-gradient(135deg, #c2410c, #ea580c); }
+        .mission-btn.launch {
+            background: linear-gradient(135deg, #14532d, #16a34a);
+            border-color: #4ade80;
+            padding: 16px 14px;
+        }
+        .mission-btn.launch:hover { background: linear-gradient(135deg, #16a34a, #22c55e); }
+
+        /* Log panel */
+        #log {
+            font-size: 11px;
+            font-family: monospace;
+            line-height: 1.5;
+            max-height: 140px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            padding: 8px;
+        }
+
+        #log .l-info { color: #8aabd8; }
+        #log .l-warn { color: #ff6b35; }
+        #log .l-crit { color: #ff3030; font-weight: bold; }
+        #log .l-good { color: #4ade80; }
+
+        /* Help tooltip */
+        .help {
+            display: inline-block;
+            width: 14px; height: 14px;
+            background: #2a5599;
+            border-radius: 50%;
+            font-size: 10px;
+            text-align: center;
+            line-height: 14px;
+            margin-left: 4px;
+            cursor: help;
+            color: #fff;
+        }
+
+        /* Overlay messages */
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        #overlay.show { display: flex; }
+
+        .modal-card {
+            background: linear-gradient(180deg, #0a1530 0%, #1a2540 100%);
+            border: 2px solid #4a90e2;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(74, 144, 226, 0.4);
+        }
+
+        .modal-card h2 { font-size: 32px; margin-bottom: 12px; }
+        .modal-card.success h2 { color: #4ade80; }
+        .modal-card.fail h2 { color: #ff6b35; }
+        .modal-card .reason {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 6px;
+            margin: 16px 0;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #c0d5f0;
+            font-family: monospace;
+        }
+        .modal-card button {
+            background: #4a90e2;
+            border: none;
+            color: #fff;
+            padding: 12px 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 12px;
+            font-family: inherit;
+        }
+        .modal-card button:hover { background: #3b82f6; }
+
+        /* Bottom controls reminder */
+        #controlsHint {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(10, 20, 50, 0.85);
+            border: 1px solid #4a90e2;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 11px;
+            display: none;
+        }
+
+        #controlsHint .key {
+            display: inline-block;
+            background: #2a5599;
+            border: 1px solid #4a90e2;
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-family: monospace;
+            margin: 0 2px;
+        }
     </style>
 </head>
 <body>
-    <div id="main">
+    <div id="stage">
         <canvas id="canvas"></canvas>
-        <div id="panel">
-            <h2>ROCKET DESIGNER</h2>
 
-            <h3>Engine</h3>
-            <select id="engineType">
-                <option value="chemical">Chemical (ISP:350s)</option>
-                <option value="solidRocket">Solid (ISP:250s)</option>
-                <option value="ion">Ion (ISP:3000s)</option>
-            </select>
+        <div id="hud">
+            <div style="font-size: 11px; color: #4a90e2; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">Telemetry</div>
+            <div class="row"><span class="label">Mission</span><span class="val" id="missionDisp">DESIGN</span></div>
+            <div class="row"><span class="label">Planet</span><span class="val" id="planetDisp">Moon</span></div>
+            <div class="row"><span class="label">Altitude</span><span class="val" id="altDisp">0 m</span></div>
+            <div class="row"><span class="label">Velocity</span><span class="val" id="velDisp">0 m/s</span></div>
+            <div class="row"><span class="label">G-Force</span><span class="val" id="gDisp">0.00 G</span></div>
+            <div class="row"><span class="label">Fuel</span><span class="val" id="fuelDisp">0 kg</span></div>
+            <div class="row"><span class="label">Temp</span><span class="val" id="tempDisp">300 K</span></div>
+            <div class="row"><span class="label">Stress</span><span class="val" id="stressDisp">0 MPa</span></div>
+        </div>
 
-            <h3>Fuel Tank</h3>
-            <label>Fuel (kg): <input type="number" id="fuelMass" value="1000" min="100" max="5000" step="100"></label>
+        <div id="controlsHint">
+            <div style="margin-bottom: 4px; color: #4a90e2; font-weight: bold;">CONTROLS</div>
+            <span class="key">↑</span><span class="key">↓</span> Throttle &nbsp;
+            <span class="key">←</span><span class="key">→</span> Steer &nbsp;
+            <span class="key">R</span> Reset
+        </div>
 
-            <h3>Structure Material</h3>
-            <select id="material">
-                <option value="aluminum">Aluminum (Weak, Light)</option>
-                <option value="titanium">Titanium (Strong, Heavy)</option>
-                <option value="steel">Steel (Medium)</option>
-            </select>
+        <div id="throttleBar">
+            <div id="throttleFill"></div>
+            <div id="throttleLabel">THROTTLE: 0%</div>
+        </div>
 
-            <h3>Heat Protection</h3>
-            <label><input type="checkbox" id="heatShield"> Add Heat Shield (+100kg)</label>
-
-            <h3>Landing Gear</h3>
-            <label><input type="checkbox" id="landingLegs"> Landing Legs (+50kg)</label>
-
-            <h3>Design Stats</h3>
-            <div class="stat"><span>Dry Mass (kg):</span> <span id="dryMass">300</span></div>
-            <div class="stat"><span>Total Mass (kg):</span> <span id="totalMass">1300</span></div>
-            <div class="stat"><span>Max Thrust (kN):</span> <span id="maxThrust">2500</span></div>
-            <div class="stat"><span>TWR (@ Moon):</span> <span id="twr">1.95</span></div>
-            <div class="stat"><span style="color:#0f0;"><strong>Δv Available (m/s):</strong></span> <span id="deltaV" style="color:#0f0;">3200</span></div>
-            <div class="stat"><span>Stress Limit (MPa):</span> <span id="stressLimit">150</span></div>
-            <div class="stat"><span>Heat Capacity (J/K):</span> <span id="heatCapacity">50000</span></div>
-
-            <h2>MISSIONS</h2>
-            <button id="tutorialBtn" onclick="startTutorial()">Tutorial: Moon Landing</button>
-            <button id="marsBtn" onclick="startMission('mars')">Mars Landing</button>
-            <button id="venusBtn" onclick="startMission('venus')">Venus Landing (HARD)</button>
-            <button id="sandboxBtn" onclick="startSandbox()">Sandbox Mode</button>
-
-            <h2>FLIGHT STATUS</h2>
-            <div class="stat"><span>State:</span> <span id="stateDisplay">READY</span></div>
-            <div class="stat"><span>Altitude (km):</span> <span id="altDisplay">0</span></div>
-            <div class="stat"><span>Velocity (m/s):</span> <span id="velDisplay">0</span></div>
-            <div class="stat"><span>Acceleration (G):</span> <span id="accelDisplay">0.00</span></div>
-            <div class="stat"><span>Fuel (kg):</span> <span id="fuelDisplay">0</span></div>
-            <div class="stat"><span>Temperature (K):</span> <span id="tempDisplay">300</span></div>
-            <div class="stat"><span>Stress (MPa):</span> <span id="stressDisplay">0</span></div>
-            <div class="stat"><span>Planet:</span> <span id="planetDisplay">Moon</span></div>
-
-            <h2>CONTROLS</h2>
-            <p>↑ ↓ - Throttle (0-100%)</p>
-            <p>← → - Steer (yaw)</p>
-            <p>W A - Pitch & Roll</p>
-            <p>L - Toggle Landing Mode</p>
-            <p>R - Reset Mission</p>
-
-            <h2>MISSION LOG</h2>
-            <div id="log" style="font-size:11px; height:200px; overflow-y:auto; border:1px solid #0f0; padding:6px; margin-top:6px;"></div>
+        <div id="overlay">
+            <div class="modal-card" id="modalCard">
+                <h2 id="modalTitle">Mission Result</h2>
+                <p id="modalDesc"></p>
+                <div class="reason" id="modalReason"></div>
+                <button onclick="closeOverlay()">Try Again</button>
+            </div>
         </div>
     </div>
 
-    <div id="gameOverlay">
-        <div class="modal">
-            <h2 id="resultTitle">Mission Failed</h2>
-            <p id="resultMsg"></p>
-            <button onclick="location.reload()" style="margin-top:16px;">Try Again</button>
+    <div id="panel">
+        <div class="section">
+            <h2><span class="icon">🚀</span>Rocket Designer</h2>
+            <p style="font-size: 11px; color: #8aabd8; margin-bottom: 10px;">
+                Design your rocket. Watch the preview update on the left!
+            </p>
+
+            <div class="field">
+                <label>Engine Type</label>
+                <select id="engineType">
+                    <option value="chemical">🔥 Chemical — Powerful (ISP: 350s)</option>
+                    <option value="solidRocket">💥 Solid — Cheap & Fast (ISP: 250s)</option>
+                    <option value="ion">⚡ Ion — Super Efficient (ISP: 3000s)</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Fuel Mass (kg)</label>
+                <input type="number" id="fuelMass" value="1000" min="200" max="5000" step="100">
+            </div>
+
+            <div class="field">
+                <label>Structure Material</label>
+                <select id="material">
+                    <option value="aluminum">Aluminum — Light, Weak (150 MPa)</option>
+                    <option value="steel">Steel — Balanced (250 MPa)</option>
+                    <option value="titanium">Titanium — Heavy, Strong (900 MPa)</option>
+                </select>
+            </div>
+
+            <div class="toggle" id="hsToggle">
+                <div>
+                    <div>🛡️ Heat Shield</div>
+                    <div class="meta">+100 kg, survives re-entry</div>
+                </div>
+                <div class="check"></div>
+            </div>
+
+            <div class="toggle" id="llToggle">
+                <div>
+                    <div>🦵 Landing Legs</div>
+                    <div class="meta">+50 kg, safe landings &lt;5 m/s</div>
+                </div>
+                <div class="check"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">📊</span>Design Stats</h2>
+            <div class="stats">
+                <div class="stat-item"><div class="label">Dry Mass</div><div class="val" id="dryMass">300 kg</div></div>
+                <div class="stat-item"><div class="label">Total Mass</div><div class="val" id="totalMass">1300 kg</div></div>
+                <div class="stat-item"><div class="label">Max Thrust</div><div class="val" id="maxThrust">2500 kN</div></div>
+                <div class="stat-item" id="twrCard"><div class="label">TWR @ Selected</div><div class="val" id="twr">1.95</div></div>
+                <div class="stat-item highlight" style="grid-column: 1/-1;"><div class="label">⚡ Δv Available</div><div class="val" id="deltaV">3200 m/s</div></div>
+            </div>
+            <p style="font-size: 10px; color: #8aabd8; margin-top: 8px; line-height: 1.4;">
+                💡 <b>Δv</b> = how much velocity change your rocket can produce.<br>
+                💡 <b>TWR</b> = thrust ÷ weight. Need TWR &gt; 1.0 to lift off!
+            </p>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">🌍</span>Choose Mission</h2>
+
+            <button class="mission-btn" onclick="startMission('moon')">
+                <span class="emoji">🌙</span>
+                <div>
+                    <div class="title">Moon Landing</div>
+                    <div class="desc">Easy: Low gravity, no atmosphere</div>
+                </div>
+            </button>
+
+            <button class="mission-btn" onclick="startMission('mars')">
+                <span class="emoji">🔴</span>
+                <div>
+                    <div class="title">Mars Landing</div>
+                    <div class="desc">Medium: Thin atmosphere, dust storms</div>
+                </div>
+            </button>
+
+            <button class="mission-btn hard" onclick="startMission('venus')">
+                <span class="emoji">🟡</span>
+                <div>
+                    <div class="title">Venus Descent</div>
+                    <div class="desc">HARD: Crushing pressure, 1500K heat!</div>
+                </div>
+            </button>
+
+            <button class="mission-btn launch" onclick="startMission('earth')">
+                <span class="emoji">🚀</span>
+                <div>
+                    <div class="title">Earth Launch</div>
+                    <div class="desc">Test launch: see if you can leave Earth!</div>
+                </div>
+            </button>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">📋</span>Mission Log</h2>
+            <div id="log"></div>
         </div>
     </div>
 
-    <script>
-        // ─────────────────────────────────────────────────────────────
-        // PHYSICS CONSTANTS & PLANET DATA
-        // ─────────────────────────────────────────────────────────────
-        const PLANETS = {
-            moon: { g: 1.62, name: 'Moon', atm: 0, color: '#aaa', scaleHeight: 0, maxTemp: 400 },
-            mars: { g: 3.71, name: 'Mars', atm: 0.02, color: '#c1440e', scaleHeight: 11.1, maxTemp: 900 },
-            venus: { g: 8.87, name: 'Venus', atm: 92, color: '#ffd700', scaleHeight: 15.9, maxTemp: 1500 },
-            earth: { g: 9.81, name: 'Earth', atm: 1.225, color: '#4169e1', scaleHeight: 8.5, maxTemp: 1200 },
-        };
+<script>
+'use strict';
 
-        const ENGINES = {
-            chemical: { isp: 350, maxThrust: 2500, consumption: 0.8 },
-            solidRocket: { isp: 250, maxThrust: 3000, consumption: 1.2 },
-            ion: { isp: 3000, maxThrust: 100, consumption: 0.05 },
-        };
+// ─── CONSTANTS ──────────────────────────────────────────────────────────────
+const PLANETS = {
+    moon:  { g: 1.62, name: 'Moon',  atm: 0,     scaleH: 1,    color: '#c8c8c8', accent: '#999', maxTemp: 400,  targetAlt: 500 },
+    mars:  { g: 3.71, name: 'Mars',  atm: 0.02,  scaleH: 11.1, color: '#c1440e', accent: '#a03000', maxTemp: 900,  targetAlt: 800 },
+    venus: { g: 8.87, name: 'Venus', atm: 67,    scaleH: 15.9, color: '#f0c040', accent: '#d0a020', maxTemp: 1500, targetAlt: 1200 },
+    earth: { g: 9.81, name: 'Earth', atm: 1.225, scaleH: 8.5,  color: '#4080d0', accent: '#306090', maxTemp: 1200, targetAlt: 1000 },
+};
 
-        const MATERIALS = {
-            aluminum: { yield: 150, density: 2.7, cost: 1 },   // MPa
-            titanium: { yield: 900, density: 4.5, cost: 3 },
-            steel: { yield: 250, density: 7.85, cost: 1.5 },
-        };
+const ENGINES = {
+    chemical:    { isp: 350,  maxThrust: 2500, burnRate: 0.8,  flameColor: '#ff5722', flameSize: 1.0 },
+    solidRocket: { isp: 250,  maxThrust: 3000, burnRate: 1.2,  flameColor: '#ffa726', flameSize: 1.3 },
+    ion:         { isp: 3000, maxThrust: 100,  burnRate: 0.04, flameColor: '#42a5f5', flameSize: 0.4 },
+};
 
-        // ─────────────────────────────────────────────────────────────
-        // CANVAS SETUP
-        // ─────────────────────────────────────────────────────────────
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth - 300;
-        canvas.height = window.innerHeight;
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth - 300;
-            canvas.height = window.innerHeight;
+const MATERIALS = {
+    aluminum: { yield: 150, color: '#c8c8d8' },
+    steel:    { yield: 250, color: '#909098' },
+    titanium: { yield: 900, color: '#a8b0c8' },
+};
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let canvas, ctx, cw, ch;
+
+const game = {
+    phase: 'design',  // design | flight | result
+    planet: 'moon',
+    time: 0,
+    dt: 1/60,
+    cameraY: 0,
+    stars: [],
+};
+
+const rocket = {
+    // Design
+    engineType: 'chemical',
+    fuelMass: 1000,
+    material: 'aluminum',
+    hasHeatShield: false,
+    hasLandingLegs: false,
+
+    // Position (meters)
+    x: 0, y: 0,
+    vx: 0, vy: 0,
+    ax: 0, ay: 0,
+    angle: 0,  // radians, 0 = pointing up
+
+    // Flight state
+    fuelRemaining: 1000,
+    throttle: 0,
+    temperature: 300,
+    integrity: 1.0,  // 1.0 = perfect, 0 = destroyed
+    landed: false,
+    destroyed: false,
+};
+
+const keys = {};
+
+// ─── INIT ───────────────────────────────────────────────────────────────────
+function init() {
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
+    resize();
+    window.addEventListener('resize', resize);
+
+    document.addEventListener('keydown', (e) => {
+        keys[e.key] = true;
+        if (e.key === 'r' || e.key === 'R') resetToDesign();
+        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+    });
+    document.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+    // Wire up design controls
+    document.getElementById('engineType').addEventListener('change', (e) => {
+        rocket.engineType = e.target.value;
+        refresh();
+    });
+    document.getElementById('fuelMass').addEventListener('input', (e) => {
+        rocket.fuelMass = parseInt(e.target.value) || 1000;
+        rocket.fuelRemaining = rocket.fuelMass;
+        refresh();
+    });
+    document.getElementById('material').addEventListener('change', (e) => {
+        rocket.material = e.target.value;
+        refresh();
+    });
+    document.getElementById('hsToggle').addEventListener('click', () => {
+        rocket.hasHeatShield = !rocket.hasHeatShield;
+        document.getElementById('hsToggle').classList.toggle('on', rocket.hasHeatShield);
+        refresh();
+    });
+    document.getElementById('llToggle').addEventListener('click', () => {
+        rocket.hasLandingLegs = !rocket.hasLandingLegs;
+        document.getElementById('llToggle').classList.toggle('on', rocket.hasLandingLegs);
+        refresh();
+    });
+
+    // Generate starfield
+    for (let i = 0; i < 200; i++) {
+        game.stars.push({
+            x: Math.random() * 2000 - 1000,
+            y: Math.random() * 3000,
+            size: Math.random() * 1.5 + 0.3,
+            bright: Math.random() * 0.7 + 0.3,
         });
+    }
 
-        // ─────────────────────────────────────────────────────────────
-        // GAME STATE
-        // ─────────────────────────────────────────────────────────────
-        let gameState = {
-            phase: 'design',           // design, flight, landingMode, gameOver
-            planet: 'moon',
-            time: 0,
-            dt: 0.016,                 // ~60 FPS
-        };
+    log('Welcome! Design your rocket on the right →', 'info');
+    log('Then click a mission button to launch!', 'info');
 
-        let rocket = {
-            // Position & Velocity
-            x: 0, y: 0, vx: 0, vy: 0, ax: 0, ay: 0,
-            angle: 0, angVel: 0, angAccel: 0,
-            // Design
-            engineType: 'chemical',
-            fuelMass: 1000,
-            dryMass: 300,
-            material: 'aluminum',
-            hasHeatShield: false,
-            hasLandingLegs: false,
-            // Flight state
-            fuelRemaining: 1000,
-            throttle: 0,            // 0-1
-            temperature: 300,       // Kelvin
-            integrityDamage: 0,     // 0-1, at 1 = destroyed
-            destroyed: false,
-        };
+    refresh();
+    requestAnimationFrame(loop);
+}
 
-        let input = {
-            up: false, down: false,
-            left: false, right: false,
-            w: false, a: false,
-            land: false,
-        };
+function resize() {
+    cw = canvas.width = canvas.clientWidth;
+    ch = canvas.height = canvas.clientHeight;
+}
 
-        // ─────────────────────────────────────────────────────────────
-        // PHYSICS HELPER FUNCTIONS
-        // ─────────────────────────────────────────────────────────────
+// ─── PHYSICS HELPERS ────────────────────────────────────────────────────────
+function getDryMass() {
+    let m = 300;  // Base structure
+    if (rocket.hasHeatShield) m += 100;
+    if (rocket.hasLandingLegs) m += 50;
+    return m;
+}
 
-        function calculateRocketMass() {
-            rocket.dryMass = 300;
-            if (rocket.hasHeatShield) rocket.dryMass += 100;
-            if (rocket.hasLandingLegs) rocket.dryMass += 50;
-            const totalMass = rocket.dryMass + rocket.fuelRemaining;
-            return totalMass;
-        }
+function getTotalMass() {
+    return getDryMass() + rocket.fuelRemaining;
+}
 
-        function calculateDeltaV() {
-            const eng = ENGINES[rocket.engineType];
-            const totalMass = calculateRocketMass();
-            const dryMass = rocket.dryMass;
-            const isp = eng.isp;
-            // Tsiolkovsky: Δv = ISP * g * ln(m0 / mf)
-            const deltaV = isp * 9.81 * Math.log(totalMass / dryMass);
-            return deltaV;
-        }
+function getDeltaV() {
+    const eng = ENGINES[rocket.engineType];
+    const m0 = getDryMass() + rocket.fuelMass;  // full
+    const mf = getDryMass();                     // empty
+    return eng.isp * 9.81 * Math.log(m0 / mf);
+}
 
-        function calculateThrust() {
-            const eng = ENGINES[rocket.engineType];
-            return eng.maxThrust * rocket.throttle;
-        }
+function getThrust() {
+    return ENGINES[rocket.engineType].maxThrust * rocket.throttle * 1000;  // N
+}
 
-        function calculateDrag(velocity, altitude) {
-            const planet = PLANETS[gameState.planet];
-            if (planet.atm === 0) return 0;
+function getMaxThrust() {
+    return ENGINES[rocket.engineType].maxThrust * 1000;  // N
+}
 
-            // Air density decreases exponentially
-            const rho = planet.atm * Math.exp(-altitude / planet.scaleHeight);
-            const cd = 0.25;  // streamlined rocket
-            const refArea = 1.0; // m²
-            const drag = 0.5 * rho * velocity * velocity * cd * refArea;
-            return drag;
-        }
+function getTWR() {
+    const planet = PLANETS[game.planet];
+    return getMaxThrust() / (getTotalMass() * planet.g);
+}
 
-        function calculateHeating(velocity, altitude) {
-            const planet = PLANETS[gameState.planet];
-            if (planet.atm === 0) return 0;
+function getAirDensity(altitude) {
+    const planet = PLANETS[game.planet];
+    if (planet.atm === 0) return 0;
+    return planet.atm * Math.exp(-altitude / (planet.scaleH * 1000));
+}
 
-            // Heating from air friction at high velocity
-            // Heat ~ rho * v³
-            const rho = planet.atm * Math.exp(-altitude / planet.scaleHeight);
-            const heating = rho * Math.pow(velocity, 3) / 1e6;  // Scale down
-            return heating;
-        }
+function getDrag(velocity, altitude) {
+    const rho = getAirDensity(altitude);
+    const cd = 0.3;
+    const area = 2.0;  // m²
+    return 0.5 * rho * velocity * velocity * cd * area;
+}
 
-        function calculateStress(accelG) {
-            // Stress from G-forces on airframe
-            // Thrust also adds stress on fuel tank
-            const mat = MATERIALS[rocket.material];
-            const totalMass = calculateRocketMass();
-            const thrustForce = calculateThrust();
+function getHeatRate(velocity, altitude) {
+    const rho = getAirDensity(altitude);
+    return rho * Math.pow(Math.abs(velocity), 3) * 0.00005;  // K/s
+}
 
-            // G-force stress
-            const gStress = accelG * 10;  // arbitrary scale
-            // Thrust stress (on tank above engine)
-            const thrustStress = thrustForce / 50;  // tank cross-section ~50 cm²
+function getStress() {
+    const totalAccel = Math.sqrt(rocket.ax*rocket.ax + rocket.ay*rocket.ay);
+    const gforce = totalAccel / 9.81;
+    return gforce * 25;  // Approx MPa from g-force
+}
 
-            return gStress + thrustStress;
-        }
+// ─── PHYSICS UPDATE ─────────────────────────────────────────────────────────
+function updatePhysics() {
+    if (game.phase !== 'flight') return;
+    if (rocket.destroyed || rocket.landed) return;
 
-        // ─────────────────────────────────────────────────────────────
-        // UPDATE FUNCTIONS
-        // ─────────────────────────────────────────────────────────────
+    const planet = PLANETS[game.planet];
+    const dt = game.dt;
 
-        function updateFlightPhysics() {
-            if (gameState.phase !== 'flight' && gameState.phase !== 'landingMode') return;
-            if (rocket.destroyed) return;
+    // Throttle control
+    if (keys['ArrowUp'])   rocket.throttle = Math.min(1, rocket.throttle + 0.03);
+    if (keys['ArrowDown']) rocket.throttle = Math.max(0, rocket.throttle - 0.03);
+    if (keys['ArrowLeft'])  rocket.angle = Math.max(-Math.PI/3, rocket.angle - 0.04);
+    if (keys['ArrowRight']) rocket.angle = Math.min( Math.PI/3, rocket.angle + 0.04);
 
-            const planet = PLANETS[gameState.planet];
-            const altitude = Math.max(0, rocket.y);
-            const velocity = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
+    // 1. GRAVITY
+    let ax = 0;
+    let ay = -planet.g;  // negative = downward (y is altitude)
 
-            // 1. GRAVITY (System 1)
-            rocket.ay = planet.g;
+    // 2. THRUST
+    const totalMass = getTotalMass();
+    if (rocket.fuelRemaining > 0 && rocket.throttle > 0) {
+        const thrust = getThrust();
+        const thrustAccel = thrust / totalMass;
+        // Angle: 0 = straight up; angle tilts right (+x)
+        ax += thrustAccel * Math.sin(rocket.angle);
+        ay += thrustAccel * Math.cos(rocket.angle);
 
-            // 2. THRUST (System 2) - add to acceleration
-            if (rocket.fuelRemaining > 0 && rocket.throttle > 0) {
-                const thrust = calculateThrust();
-                const totalMass = calculateRocketMass();
-                const accelFromThrust = thrust / totalMass;
+        // Burn fuel
+        const eng = ENGINES[rocket.engineType];
+        const burnRate = eng.burnRate * rocket.throttle * (eng.maxThrust / 100);
+        rocket.fuelRemaining = Math.max(0, rocket.fuelRemaining - burnRate * dt);
+    }
 
-                rocket.ax = accelFromThrust * Math.cos(rocket.angle);
-                rocket.ay -= accelFromThrust * Math.sin(rocket.angle);  // subtract because angle is from horizontal
+    // 4. AERODYNAMICS
+    const velocity = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
+    if (velocity > 0.1) {
+        const drag = getDrag(velocity, rocket.y);
+        const dragAccel = drag / totalMass;
+        const vAng = Math.atan2(rocket.vy, rocket.vx);
+        ax -= dragAccel * Math.cos(vAng);
+        ay -= dragAccel * Math.sin(vAng);
+    }
 
-                // Burn fuel (System 2 continuation)
-                const eng = ENGINES[rocket.engineType];
-                const burnRate = eng.consumption * rocket.throttle;
-                rocket.fuelRemaining = Math.max(0, rocket.fuelRemaining - burnRate * gameState.dt);
-            } else {
-                rocket.ax = 0;
-            }
+    rocket.ax = ax;
+    rocket.ay = ay;
 
-            // 4. AERODYNAMICS (System 4) - add drag
-            if (velocity > 0) {
-                const drag = calculateDrag(velocity, altitude);
-                const totalMass = calculateRocketMass();
-                const dragAccel = drag / totalMass;
+    // 5. HEAT
+    const heatGain = getHeatRate(velocity, rocket.y);
+    const heatShieldMult = rocket.hasHeatShield ? 0.3 : 1.0;
+    rocket.temperature += heatGain * heatShieldMult * dt;
+    rocket.temperature = Math.max(300, rocket.temperature - 8 * dt);  // Cooling
 
-                // Drag opposes velocity direction
-                const velAngle = Math.atan2(rocket.vy, rocket.vx);
-                rocket.ax -= dragAccel * Math.cos(velAngle);
-                rocket.ay -= dragAccel * Math.sin(velAngle);
-            }
+    // Check overheating
+    if (rocket.temperature > planet.maxTemp) {
+        rocket.integrity -= 0.05 * dt * 30;
+        log(`🔥 OVERHEATING at ${rocket.temperature.toFixed(0)}K!`, 'crit');
+    }
 
-            // 5. HEAT (System 5) - accumulate from aerodynamic heating
-            const heating = calculateHeating(velocity, altitude);
-            rocket.temperature += heating * gameState.dt;
-            // Cool down (radiates to space)
-            rocket.temperature = Math.max(300, rocket.temperature - 5 * gameState.dt);
+    // 5b. STRESS
+    const stress = getStress();
+    const mat = MATERIALS[rocket.material];
+    if (stress > mat.yield) {
+        rocket.integrity -= (stress - mat.yield) / mat.yield * dt * 0.5;
+        log(`⚠️ Stress exceeded! ${stress.toFixed(0)} > ${mat.yield} MPa`, 'warn');
+    }
 
-            // 6. STRESS (System 5) - check structural integrity
-            const accelG = Math.sqrt(rocket.ax*rocket.ax + rocket.ay*rocket.ay) / 9.81;
-            const stress = calculateStress(accelG);
-            const mat = MATERIALS[rocket.material];
+    if (rocket.integrity <= 0) {
+        rocket.destroyed = true;
+        endMission(false, 'Structural failure',
+            `Your ${rocket.material} airframe couldn't take it. Stress: ${stress.toFixed(0)} MPa, Temp: ${rocket.temperature.toFixed(0)}K.`);
+        return;
+    }
 
-            if (stress > mat.yield) {
-                // Structural failure!
-                rocket.integrityDamage += 0.1;
-                log(`⚠️  STRUCTURAL FAILURE! Stress ${stress.toFixed(0)} MPa > ${mat.yield} MPa`);
-            }
+    // Velocity update
+    rocket.vx += ax * dt;
+    rocket.vy += ay * dt;
+    rocket.x += rocket.vx * dt;
+    rocket.y += rocket.vy * dt;
 
-            if (rocket.integrityDamage > 1) {
+    // 6. COLLISIONS — Ground impact
+    if (rocket.y < 0) {
+        const impactSpeed = Math.abs(rocket.vy);
+        rocket.y = 0;
+
+        if (rocket.hasLandingLegs && impactSpeed < 5) {
+            rocket.landed = true;
+            rocket.vy = 0; rocket.vx = 0;
+            log(`✓ Safe landing! Impact: ${impactSpeed.toFixed(1)} m/s`, 'good');
+            endMission(true, 'Mission Successful!',
+                `You landed on ${planet.name} with ${rocket.fuelRemaining.toFixed(0)} kg fuel left at ${impactSpeed.toFixed(1)} m/s.`);
+        } else if (impactSpeed < 12 && rocket.hasLandingLegs) {
+            rocket.integrity -= 0.3;
+            rocket.vy = 0;
+            log(`💥 Hard landing: ${impactSpeed.toFixed(1)} m/s, damage taken`, 'warn');
+            if (rocket.integrity < 0.4) {
                 rocket.destroyed = true;
-                endMission(false, `Structural failure at ${accelG.toFixed(1)}G`);
-            }
-
-            // Velocity update
-            rocket.vx += rocket.ax * gameState.dt;
-            rocket.vy += rocket.ay * gameState.dt;
-
-            // Position update
-            rocket.x += rocket.vx * gameState.dt;
-            rocket.y += rocket.vy * gameState.dt;
-
-            // Collision with ground (System 6)
-            if (rocket.y < 0) {
-                const impactVelocity = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
-
-                if (rocket.hasLandingLegs && impactVelocity < 5) {
-                    log(`✓ Safe landing at ${impactVelocity.toFixed(1)} m/s`);
-                    endMission(true, `Landed safely on ${planet.name}!`);
-                } else if (impactVelocity < 10) {
-                    rocket.integrityDamage += 0.3;
-                    log(`💥 Hard landing: ${impactVelocity.toFixed(1)} m/s, damage ${(rocket.integrityDamage*100).toFixed(0)}%`);
-                    if (rocket.integrityDamage > 1) {
-                        rocket.destroyed = true;
-                        endMission(false, `Crash landing - too much impact`);
-                    } else {
-                        rocket.y = 0;
-                        rocket.vy = -rocket.vy * 0.5;
-                    }
-                } else {
-                    endMission(false, `Crash landing at ${impactVelocity.toFixed(1)} m/s - too fast!`);
-                }
-            }
-
-            // Overheating failure
-            if (rocket.temperature > planet.maxTemp) {
-                endMission(false, `Overheat failure! ${rocket.temperature.toFixed(0)}K > ${planet.maxTemp}K`);
-            }
-        }
-
-        // ─────────────────────────────────────────────────────────────
-        // INPUT HANDLING
-        // ─────────────────────────────────────────────────────────────
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp') { input.up = true; e.preventDefault(); }
-            if (e.key === 'ArrowDown') { input.down = true; e.preventDefault(); }
-            if (e.key === 'ArrowLeft') { input.left = true; e.preventDefault(); }
-            if (e.key === 'ArrowRight') { input.right = true; e.preventDefault(); }
-            if (e.key === 'w') input.w = true;
-            if (e.key === 'a') input.a = true;
-            if (e.key === 'l') input.land = true;
-            if (e.key === 'r') location.reload();
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowUp') input.up = false;
-            if (e.key === 'ArrowDown') input.down = false;
-            if (e.key === 'ArrowLeft') input.left = false;
-            if (e.key === 'ArrowRight') input.right = false;
-            if (e.key === 'w') input.w = false;
-            if (e.key === 'a') input.a = false;
-            if (e.key === 'l') input.land = false;
-        });
-
-        // ─────────────────────────────────────────────────────────────
-        // MISSION CONTROL
-        // ─────────────────────────────────────────────────────────────
-
-        function startTutorial() {
-            gameState.phase = 'flight';
-            gameState.planet = 'moon';
-            rocket.y = 0;
-            rocket.fuelRemaining = rocket.fuelMass;
-            rocket.temperature = 300;
-            rocket.integrityDamage = 0;
-            rocket.destroyed = false;
-            log('Tutorial: Moon Landing');
-            log('Moon has no atmosphere - easy landing!');
-            log('Use ↑ to throttle, ← → to steer');
-        }
-
-        function startMission(planet) {
-            gameState.phase = 'flight';
-            gameState.planet = planet;
-            rocket.y = 0;
-            rocket.fuelRemaining = rocket.fuelMass;
-            rocket.temperature = 300;
-            rocket.integrityDamage = 0;
-            rocket.destroyed = false;
-
-            const p = PLANETS[planet];
-            log(`Launching to ${p.name}`);
-            if (planet === 'mars') log('Beware re-entry heating!');
-            if (planet === 'venus') log('⚠️ EXTREME conditions - you need heat shield!');
-        }
-
-        function startSandbox() {
-            startMission('moon');
-        }
-
-        function endMission(success, msg) {
-            gameState.phase = 'gameOver';
-            const overlay = document.getElementById('gameOverlay');
-            const title = document.getElementById('resultTitle');
-            const msgEl = document.getElementById('resultMsg');
-
-            if (success) {
-                title.textContent = '✓ MISSION SUCCESS';
-                msgEl.textContent = msg;
-                log(`✓ ${msg}`);
+                endMission(false, 'Hard Crash',
+                    `Landing legs couldn't absorb ${impactSpeed.toFixed(1)} m/s. Slow down to under 5 m/s.`);
             } else {
-                title.textContent = '✗ MISSION FAILED';
-                msgEl.textContent = msg;
-                log(`✗ ${msg}`);
+                rocket.landed = true;
+                endMission(true, 'Rough Landing',
+                    `You survived ${planet.name}, but barely. Impact: ${impactSpeed.toFixed(1)} m/s.`);
             }
-            overlay.style.display = 'flex';
+        } else {
+            rocket.destroyed = true;
+            const reason = rocket.hasLandingLegs
+                ? `Hit the ground at ${impactSpeed.toFixed(1)} m/s — too fast. Need less than 5 m/s.`
+                : `No landing legs! Hit the ground at ${impactSpeed.toFixed(1)} m/s.`;
+            endMission(false, 'Crashed!', reason);
         }
+    }
 
-        // ─────────────────────────────────────────────────────────────
-        // UI UPDATES
-        // ─────────────────────────────────────────────────────────────
+    // Check fuel out
+    if (rocket.fuelRemaining <= 0 && rocket.throttle > 0) {
+        log('⛽ Out of fuel!', 'warn');
+        rocket.throttle = 0;
+    }
 
-        function updateDesignUI() {
-            document.getElementById('dryMass').textContent = rocket.dryMass;
-            document.getElementById('totalMass').textContent = calculateRocketMass();
+    // Check victory: reach target altitude
+    if (rocket.y > planet.targetAlt && rocket.vy > 0 && game.phase === 'flight') {
+        log(`🌟 Reached space at ${(rocket.y/1000).toFixed(1)} km!`, 'good');
+        endMission(true, 'Reached Space!',
+            `You hit ${(rocket.y/1000).toFixed(1)} km on ${planet.name} with ${rocket.fuelRemaining.toFixed(0)} kg fuel left.`);
+    }
+}
 
-            const eng = ENGINES[rocket.engineType];
-            document.getElementById('maxThrust').textContent = eng.maxThrust;
+// ─── DRAWING ────────────────────────────────────────────────────────────────
+function draw() {
+    // Sky gradient based on altitude
+    const planet = PLANETS[game.planet];
+    const alt = game.phase === 'flight' ? Math.max(0, rocket.y) : 0;
+    const spaceFactor = Math.min(1, alt / 50000);
 
-            const planet = PLANETS[gameState.planet];
-            const twr = calculateThrust() / (calculateRocketMass() * planet.g);
-            document.getElementById('twr').textContent = twr.toFixed(2);
+    const sky = ctx.createLinearGradient(0, 0, 0, ch);
+    if (game.planet === 'mars') {
+        sky.addColorStop(0, `rgba(40, 5, 0, 1)`);
+        sky.addColorStop(1, `rgba(150, 60, 30, ${1 - spaceFactor*0.7})`);
+    } else if (game.planet === 'venus') {
+        sky.addColorStop(0, `rgba(60, 40, 0, 1)`);
+        sky.addColorStop(1, `rgba(200, 160, 60, ${1 - spaceFactor*0.7})`);
+    } else if (game.planet === 'earth') {
+        sky.addColorStop(0, `rgba(0, 5, 25, 1)`);
+        sky.addColorStop(1, `rgba(80, 130, 200, ${1 - spaceFactor*0.7})`);
+    } else { // moon
+        sky.addColorStop(0, '#000');
+        sky.addColorStop(1, '#000');
+    }
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, cw, ch);
 
-            const deltaV = calculateDeltaV();
-            const deltaVEl = document.getElementById('deltaV');
-            deltaVEl.textContent = deltaV.toFixed(0);
-            if (deltaV < 2000) deltaVEl.style.color = '#f77'; else deltaVEl.style.color = '#0f0';
-
-            const mat = MATERIALS[rocket.material];
-            document.getElementById('stressLimit').textContent = mat.yield;
-            document.getElementById('heatCapacity').textContent = (50000 + (rocket.hasHeatShield ? 20000 : 0));
-        }
-
-        function updateFlightUI() {
-            const altitude = Math.max(0, rocket.y) / 1000;
-            const velocity = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
-            const accelG = Math.sqrt(rocket.ax*rocket.ax + rocket.ay*rocket.ay) / 9.81;
-
-            document.getElementById('altDisplay').textContent = altitude.toFixed(2);
-            document.getElementById('velDisplay').textContent = velocity.toFixed(1);
-            document.getElementById('accelDisplay').textContent = accelG.toFixed(2);
-            document.getElementById('fuelDisplay').textContent = rocket.fuelRemaining.toFixed(0);
-            document.getElementById('tempDisplay').textContent = rocket.temperature.toFixed(0);
-            document.getElementById('stressDisplay').textContent = calculateStress(accelG).toFixed(0);
-            document.getElementById('stateDisplay').textContent = gameState.phase.toUpperCase();
-        }
-
-        function log(msg) {
-            const logEl = document.getElementById('log');
-            logEl.innerHTML += msg + '<br>';
-            logEl.scrollTop = logEl.scrollHeight;
-        }
-
-        // ─────────────────────────────────────────────────────────────
-        // DRAWING
-        // ─────────────────────────────────────────────────────────────
-
-        function draw() {
-            // Clear
-            ctx.fillStyle = 'rgb(0, 20, 50)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw planet surface
-            const planet = PLANETS[gameState.planet];
-            ctx.fillStyle = planet.color;
-            ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
-
-            // Draw rocket
-            if (gameState.phase === 'flight' || gameState.phase === 'landingMode') {
-                const screenY = canvas.height - 50 - rocket.y;
-                const screenX = canvas.width / 2 + rocket.x;
-
-                ctx.save();
-                ctx.translate(screenX, screenY);
-                ctx.rotate(rocket.angle + Math.PI/2);
-
-                // Body
-                ctx.fillStyle = '#ff6b6b';
-                ctx.fillRect(-10, -30, 20, 60);
-
-                // Nose
-                ctx.fillStyle = '#ffd93d';
-                ctx.beginPath();
-                ctx.moveTo(0, -30);
-                ctx.lineTo(-8, -20);
-                ctx.lineTo(8, -20);
-                ctx.closePath();
-                ctx.fill();
-
-                // Flame
-                if (rocket.throttle > 0) {
-                    const flameHeight = rocket.throttle * 40;
-                    ctx.fillStyle = '#ff4500';
-                    ctx.beginPath();
-                    ctx.moveTo(-6, 30);
-                    ctx.lineTo(6, 30);
-                    ctx.lineTo(0, 30 + flameHeight);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-
-                ctx.restore();
-            }
-
-            // HUD
-            ctx.fillStyle = '#0f0';
-            ctx.font = '12px monospace';
-            ctx.fillText(`Throttle: ${(rocket.throttle*100).toFixed(0)}%`, 10, 20);
-            ctx.fillText(`Planet: ${PLANETS[gameState.planet].name}`, 10, 40);
-        }
-
-        // ─────────────────────────────────────────────────────────────
-        // SYNC UI WITH INPUTS
-        // ─────────────────────────────────────────────────────────────
-
-        document.getElementById('engineType').addEventListener('change', (e) => {
-            rocket.engineType = e.target.value;
-            updateDesignUI();
+    // Stars (only visible in space or on moon)
+    if (game.planet === 'moon' || spaceFactor > 0.3 || game.phase === 'design') {
+        const starAlpha = game.planet === 'moon' ? 1 : spaceFactor;
+        game.stars.forEach(s => {
+            ctx.fillStyle = `rgba(255,255,255,${s.bright * starAlpha})`;
+            const sx = (cw/2 + s.x) % cw;
+            const sy = (s.y - game.cameraY * 0.1) % ch;
+            ctx.beginPath();
+            ctx.arc(sx, sy < 0 ? sy + ch : sy, s.size, 0, Math.PI*2);
+            ctx.fill();
         });
+    }
 
-        document.getElementById('fuelMass').addEventListener('change', (e) => {
-            rocket.fuelMass = parseInt(e.target.value);
-            rocket.fuelRemaining = rocket.fuelMass;
-            updateDesignUI();
-        });
+    // Camera follows rocket vertically when flying
+    if (game.phase === 'flight' && rocket.y > 150) {
+        game.cameraY = rocket.y - 150;
+    } else {
+        game.cameraY *= 0.9;  // ease back to ground
+    }
 
-        document.getElementById('material').addEventListener('change', (e) => {
-            rocket.material = e.target.value;
-            updateDesignUI();
-        });
+    // Ground / planet surface
+    const groundY = ch - 80 + game.cameraY * 0.6;  // parallax
+    if (groundY < ch) {
+        // Ground gradient
+        const grd = ctx.createLinearGradient(0, groundY, 0, ch);
+        grd.addColorStop(0, planet.color);
+        grd.addColorStop(1, planet.accent);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, groundY, cw, ch - groundY);
 
-        document.getElementById('heatShield').addEventListener('change', (e) => {
-            rocket.hasHeatShield = e.target.checked;
-            updateDesignUI();
-        });
-
-        document.getElementById('landingLegs').addEventListener('change', (e) => {
-            rocket.hasLandingLegs = e.target.checked;
-            updateDesignUI();
-        });
-
-        // ─────────────────────────────────────────────────────────────
-        // MAIN LOOP
-        // ─────────────────────────────────────────────────────────────
-
-        function loop() {
-            gameState.time += gameState.dt;
-
-            // Process input
-            if (input.up) rocket.throttle = Math.min(1, rocket.throttle + 0.02);
-            if (input.down) rocket.throttle = Math.max(0, rocket.throttle - 0.02);
-            if (input.left) rocket.angle -= 0.03;
-            if (input.right) rocket.angle += 0.03;
-
-            // Update physics
-            updateFlightPhysics();
-            updateDesignUI();
-            updateFlightUI();
-            draw();
-
-            requestAnimationFrame(loop);
+        // Some surface texture (craters/rocks)
+        ctx.fillStyle = planet.accent;
+        for (let i = 0; i < 8; i++) {
+            const cx = (i * 137) % cw;
+            ctx.beginPath();
+            ctx.arc(cx, groundY + 30 + (i % 3) * 10, 8 + (i % 4) * 3, 0, Math.PI*2);
+            ctx.fill();
         }
 
-        updateDesignUI();
-        loop();
-    </script>
+        // Launch pad
+        if (game.phase === 'design' || game.cameraY < 50) {
+            ctx.fillStyle = '#444';
+            ctx.fillRect(cw/2 - 40, groundY - 5, 80, 8);
+            ctx.fillStyle = '#222';
+            ctx.fillRect(cw/2 - 35, groundY - 12, 4, 12);
+            ctx.fillRect(cw/2 + 31, groundY - 12, 4, 12);
+        }
+    }
+
+    // Draw rocket — ALWAYS visible
+    drawRocket(groundY);
+
+    // Throttle flame trail
+    if (game.phase === 'flight' && rocket.throttle > 0 && !rocket.destroyed) {
+        // Visual: rocket exhaust particles? simplified for now
+    }
+
+    // Update HUD
+    updateHUD();
+}
+
+function drawRocket(groundY) {
+    const cx = cw / 2 + (rocket.x * 0.5);
+    const cy = (game.phase === 'flight')
+        ? groundY - (rocket.y - game.cameraY)  // fly upward visually
+        : groundY - 50;  // sitting on pad in design
+
+    const eng = ENGINES[rocket.engineType];
+    const mat = MATERIALS[rocket.material];
+    const scale = 1.8;
+    const bodyW = 24 * scale;
+    const bodyH = 60 * scale;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rocket.angle);
+
+    // Heat shield (bottom dome)
+    if (rocket.hasHeatShield) {
+        ctx.fillStyle = '#3d3d3d';
+        ctx.beginPath();
+        ctx.ellipse(0, bodyH/2 - 2, bodyW/2 + 4, 8, 0, 0, Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#5a5a5a';
+        ctx.fillRect(-bodyW/2 - 2, bodyH/2 - 10, bodyW + 4, 6);
+    }
+
+    // Main body
+    ctx.fillStyle = mat.color;
+    ctx.fillRect(-bodyW/2, -bodyH/2, bodyW, bodyH);
+
+    // Body shading (right side darker)
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(bodyW/4, -bodyH/2, bodyW/4, bodyH);
+
+    // Stripe / accent
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-bodyW/2, -bodyH/2 + 14, bodyW, 6);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(-bodyW/2, -bodyH/2 + 22, bodyW, 2);
+
+    // Window
+    ctx.fillStyle = '#90caf9';
+    ctx.beginPath();
+    ctx.arc(0, -bodyH/2 + 35, 6, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#1976d2';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Nose cone
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(0, -bodyH/2 - 22);
+    ctx.lineTo(-bodyW/2, -bodyH/2 + 4);
+    ctx.lineTo(bodyW/2, -bodyH/2 + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // Fins
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath();
+    ctx.moveTo(-bodyW/2, bodyH/2 - 16);
+    ctx.lineTo(-bodyW/2 - 14, bodyH/2 + 6);
+    ctx.lineTo(-bodyW/2, bodyH/2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bodyW/2, bodyH/2 - 16);
+    ctx.lineTo(bodyW/2 + 14, bodyH/2 + 6);
+    ctx.lineTo(bodyW/2, bodyH/2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Landing legs
+    if (rocket.hasLandingLegs) {
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-bodyW/2, bodyH/2 - 5);
+        ctx.lineTo(-bodyW/2 - 12, bodyH/2 + 14);
+        ctx.moveTo(bodyW/2, bodyH/2 - 5);
+        ctx.lineTo(bodyW/2 + 12, bodyH/2 + 14);
+        ctx.stroke();
+        // Feet
+        ctx.fillStyle = '#666';
+        ctx.fillRect(-bodyW/2 - 18, bodyH/2 + 13, 10, 3);
+        ctx.fillRect(bodyW/2 + 8, bodyH/2 + 13, 10, 3);
+    }
+
+    // Engine bell
+    ctx.fillStyle = '#2c2c2c';
+    ctx.beginPath();
+    ctx.moveTo(-bodyW/3, bodyH/2);
+    ctx.lineTo(-bodyW/2.2, bodyH/2 + 12);
+    ctx.lineTo(bodyW/2.2, bodyH/2 + 12);
+    ctx.lineTo(bodyW/3, bodyH/2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Flame (when throttling)
+    if (game.phase === 'flight' && rocket.throttle > 0 && rocket.fuelRemaining > 0 && !rocket.destroyed) {
+        const flick = 0.85 + Math.random() * 0.3;
+        const flameLen = (30 + 40 * rocket.throttle) * flick * eng.flameSize;
+        const flameW = bodyW/2.5 * (0.6 + 0.4 * rocket.throttle);
+
+        // Outer flame
+        ctx.fillStyle = eng.flameColor;
+        ctx.beginPath();
+        ctx.moveTo(-flameW, bodyH/2 + 10);
+        ctx.lineTo(flameW, bodyH/2 + 10);
+        ctx.lineTo(flameW * 0.5, bodyH/2 + 12 + flameLen * 0.6);
+        ctx.lineTo(0, bodyH/2 + 12 + flameLen);
+        ctx.lineTo(-flameW * 0.5, bodyH/2 + 12 + flameLen * 0.6);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner flame
+        ctx.fillStyle = '#fff7d6';
+        ctx.beginPath();
+        ctx.moveTo(-flameW * 0.4, bodyH/2 + 10);
+        ctx.lineTo(flameW * 0.4, bodyH/2 + 10);
+        ctx.lineTo(0, bodyH/2 + 12 + flameLen * 0.5);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // Damage indicator
+    if (rocket.integrity < 1 && rocket.integrity > 0) {
+        ctx.strokeStyle = '#ff3030';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+            const y = -bodyH/2 + (i * bodyH/5) + Math.random()*4;
+            ctx.moveTo(-bodyW/2, y);
+            ctx.lineTo(bodyW/2 - Math.random()*8, y + Math.random()*3 - 1.5);
+        }
+        ctx.stroke();
+    }
+
+    // Heat glow
+    if (rocket.temperature > 600) {
+        const glowAlpha = Math.min(0.7, (rocket.temperature - 600) / 600);
+        const grad = ctx.createRadialGradient(0, 0, 5, 0, 0, bodyH);
+        grad.addColorStop(0, `rgba(255, 100, 0, ${glowAlpha})`);
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.fillRect(-bodyW, -bodyH, bodyW*2, bodyH*2);
+    }
+
+    ctx.restore();
+
+    // Velocity arrow (during flight, helps player see direction)
+    if (game.phase === 'flight') {
+        const v = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
+        if (v > 5) {
+            ctx.strokeStyle = 'rgba(100, 255, 100, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + rocket.vx * 1.5, cy - rocket.vy * 1.5);
+            ctx.stroke();
+        }
+    }
+}
+
+// ─── UI ────────────────────────────────────────────────────────────────────
+function refresh() {
+    document.getElementById('dryMass').textContent = getDryMass() + ' kg';
+    document.getElementById('totalMass').textContent = getTotalMass() + ' kg';
+    document.getElementById('maxThrust').textContent = ENGINES[rocket.engineType].maxThrust + ' kN';
+
+    const twr = getTWR();
+    const twrEl = document.getElementById('twr');
+    twrEl.textContent = twr.toFixed(2);
+    const twrCard = document.getElementById('twrCard');
+    twrCard.classList.remove('warn', 'highlight');
+    if (twr < 1.0) twrCard.classList.add('warn');
+    else if (twr > 2.0) twrCard.classList.add('highlight');
+
+    document.getElementById('deltaV').textContent = getDeltaV().toFixed(0) + ' m/s';
+}
+
+function updateHUD() {
+    document.getElementById('missionDisp').textContent = game.phase.toUpperCase();
+    document.getElementById('planetDisp').textContent = PLANETS[game.planet].name;
+    document.getElementById('altDisp').textContent = Math.max(0, rocket.y).toFixed(0) + ' m';
+    const v = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
+    document.getElementById('velDisp').textContent = v.toFixed(0) + ' m/s';
+    const accel = Math.sqrt(rocket.ax*rocket.ax + rocket.ay*rocket.ay);
+    const gEl = document.getElementById('gDisp');
+    const gforce = accel / 9.81;
+    gEl.textContent = gforce.toFixed(2) + ' G';
+    gEl.className = 'val' + (gforce > 8 ? ' crit' : gforce > 5 ? ' warn' : '');
+
+    document.getElementById('fuelDisp').textContent = rocket.fuelRemaining.toFixed(0) + ' kg';
+    const tempEl = document.getElementById('tempDisp');
+    tempEl.textContent = rocket.temperature.toFixed(0) + ' K';
+    const maxTemp = PLANETS[game.planet].maxTemp;
+    tempEl.className = 'val' + (rocket.temperature > maxTemp * 0.9 ? ' crit' : rocket.temperature > maxTemp * 0.6 ? ' warn' : '');
+
+    const stress = getStress();
+    const stressEl = document.getElementById('stressDisp');
+    stressEl.textContent = stress.toFixed(0) + ' MPa';
+    const yieldS = MATERIALS[rocket.material].yield;
+    stressEl.className = 'val' + (stress > yieldS * 0.9 ? ' crit' : stress > yieldS * 0.6 ? ' warn' : '');
+
+    // Throttle bar
+    const tfill = document.getElementById('throttleFill');
+    const tlabel = document.getElementById('throttleLabel');
+    tfill.style.width = (rocket.throttle * 100) + '%';
+    tlabel.textContent = `THROTTLE: ${(rocket.throttle * 100).toFixed(0)}%`;
+}
+
+function log(msg, type='info') {
+    const el = document.getElementById('log');
+    const div = document.createElement('div');
+    div.className = 'l-' + type;
+    div.textContent = msg;
+    el.appendChild(div);
+    el.scrollTop = el.scrollHeight;
+    // Keep last 30
+    while (el.children.length > 30) el.removeChild(el.firstChild);
+}
+
+// ─── MISSION CONTROL ───────────────────────────────────────────────────────
+function startMission(planet) {
+    game.planet = planet;
+    game.phase = 'flight';
+    game.cameraY = 0;
+    rocket.x = 0; rocket.y = 0;
+    rocket.vx = 0; rocket.vy = 0;
+    rocket.ax = 0; rocket.ay = 0;
+    rocket.angle = 0;
+    rocket.fuelRemaining = rocket.fuelMass;
+    rocket.throttle = 0;
+    rocket.temperature = 300;
+    rocket.integrity = 1.0;
+    rocket.landed = false;
+    rocket.destroyed = false;
+
+    document.getElementById('throttleBar').style.display = 'block';
+    document.getElementById('controlsHint').style.display = 'block';
+
+    const p = PLANETS[planet];
+    log(`🚀 Launching to ${p.name}!`, 'good');
+    log(`Gravity: ${p.g} m/s² | Atmosphere: ${p.atm > 0 ? p.atm.toFixed(2) + ' kg/m³' : 'NONE'}`, 'info');
+    log(`Goal: Reach ${p.targetAlt} m altitude. ↑ to throttle up!`, 'info');
+
+    if (p.atm > 10) log('⚠️ Heavy atmosphere — you need a heat shield!', 'warn');
+    if (getTWR() < 1.0) log(`⚠️ WARNING: TWR ${getTWR().toFixed(2)} < 1.0 — rocket may not lift off!`, 'warn');
+
+    refresh();
+}
+
+function endMission(success, title, reason) {
+    game.phase = 'result';
+    const overlay = document.getElementById('overlay');
+    const card = document.getElementById('modalCard');
+    const t = document.getElementById('modalTitle');
+    const d = document.getElementById('modalDesc');
+    const r = document.getElementById('modalReason');
+
+    card.className = 'modal-card ' + (success ? 'success' : 'fail');
+    t.textContent = (success ? '🎉 ' : '💥 ') + title;
+    d.textContent = success ? 'Great job, future astronaut!' : "Don't give up — analyze and try again!";
+    r.textContent = reason;
+    overlay.classList.add('show');
+}
+
+function closeOverlay() {
+    document.getElementById('overlay').classList.remove('show');
+    resetToDesign();
+}
+
+function resetToDesign() {
+    game.phase = 'design';
+    game.cameraY = 0;
+    rocket.x = 0; rocket.y = 0;
+    rocket.vx = 0; rocket.vy = 0;
+    rocket.ax = 0; rocket.ay = 0;
+    rocket.angle = 0;
+    rocket.throttle = 0;
+    rocket.temperature = 300;
+    rocket.integrity = 1.0;
+    rocket.landed = false;
+    rocket.destroyed = false;
+    rocket.fuelRemaining = rocket.fuelMass;
+
+    document.getElementById('throttleBar').style.display = 'none';
+    document.getElementById('controlsHint').style.display = 'none';
+    document.getElementById('overlay').classList.remove('show');
+    refresh();
+}
+
+// ─── MAIN LOOP ─────────────────────────────────────────────────────────────
+function loop() {
+    game.time += game.dt;
+    updatePhysics();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+window.addEventListener('load', init);
+</script>
 </body>
 </html>
