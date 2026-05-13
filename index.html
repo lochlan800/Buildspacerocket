@@ -3,266 +3,371 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 Space Rocket Simulator</title>
+    <title>🚀 Space Rocket Builder</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; height: 100%; overflow: hidden; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #000; color: #fff; display: flex; }
 
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #000;
-            color: #fff;
+        #stage { flex: 1; position: relative; overflow: hidden; }
+        #canvas { display: block; width: 100%; height: 100%; }
+
+        /* Right panel — clean and friendly */
+        #panel {
+            width: 320px;
+            background: linear-gradient(180deg, #0d1b3d 0%, #050918 100%);
+            border-left: 3px solid #4a90e2;
+            overflow-y: auto;
             display: flex;
+            flex-direction: column;
+            padding: 16px;
         }
 
-        #stage {
-            flex: 1;
+        #panel::-webkit-scrollbar { width: 6px; }
+        #panel::-webkit-scrollbar-track { background: transparent; }
+        #panel::-webkit-scrollbar-thumb { background: #2a5599; border-radius: 3px; }
+
+        #panel h1 {
+            font-size: 18px;
+            color: #4a90e2;
+            margin-bottom: 14px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        #panel h2 {
+            font-size: 13px;
+            color: #8ab4ff;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin: 18px 0 10px;
+        }
+
+        /* Slider cards */
+        .slider-card {
+            background: rgba(74, 144, 226, 0.1);
+            border: 1px solid rgba(74, 144, 226, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .slider-card .label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .slider-card .label .num {
+            background: #4a90e2;
+            color: #fff;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            min-width: 36px;
+            text-align: center;
+        }
+
+        .slider-card .desc {
+            font-size: 11px;
+            color: #8ab4ff;
+            margin-top: 4px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, #1e3a8a, #4a90e2);
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            margin: 6px 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #ffd93d, #ff9800);
+            border-radius: 50%;
+            cursor: grab;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #ffd93d, #ff9800);
+            border-radius: 50%;
+            cursor: grab;
+            border: 2px solid #fff;
+        }
+
+        /* Toggle row */
+        .toggle-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .toggle-btn {
+            background: rgba(74, 144, 226, 0.08);
+            border: 2px solid rgba(74, 144, 226, 0.3);
+            color: #fff;
+            padding: 10px 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            text-align: center;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .toggle-btn:hover { border-color: #4a90e2; }
+
+        .toggle-btn.on {
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            border-color: #4ade80;
+            box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
+        }
+
+        .toggle-btn .emoji { font-size: 22px; display: block; margin-bottom: 4px; }
+
+        /* Rocket score card */
+        .score-card {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            margin-bottom: 6px;
+            border: 2px solid #4a90e2;
+        }
+
+        .score-card .score-label {
+            font-size: 11px;
+            color: #c0d5f0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .score-card .score-value {
+            font-size: 48px;
+            font-weight: bold;
+            line-height: 1;
+            margin: 4px 0;
+            font-family: monospace;
+        }
+
+        .score-card .score-status {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .score-card.green { background: linear-gradient(135deg, #14532d, #16a34a); border-color: #4ade80; }
+        .score-card.yellow { background: linear-gradient(135deg, #713f12, #ca8a04); border-color: #facc15; }
+        .score-card.red { background: linear-gradient(135deg, #7f1d1d, #dc2626); border-color: #ef4444; }
+
+        /* Mission cards */
+        .mission-card {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            background: rgba(74, 144, 226, 0.08);
+            border: 1px solid rgba(74, 144, 226, 0.3);
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+
+        .mission-card:hover:not(:disabled) {
+            background: rgba(74, 144, 226, 0.2);
+            border-color: #4a90e2;
+            transform: translateX(3px);
+        }
+
+        .mission-card:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .mission-card .emoji { font-size: 28px; margin-right: 12px; }
+        .mission-card .info { flex: 1; text-align: left; }
+        .mission-card .name { font-weight: bold; font-size: 14px; }
+        .mission-card .diff { font-size: 11px; color: #8ab4ff; }
+        .mission-card .stars { font-size: 16px; color: #ffd93d; letter-spacing: 2px; }
+
+        /* Gauges in HUD */
+        #gauges {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            display: none;
+            gap: 8px;
+        }
+
+        #gauges.active { display: flex; }
+
+        .gauge {
+            width: 92px;
+            height: 92px;
+            background: rgba(0, 10, 30, 0.85);
+            border: 2px solid #4a90e2;
+            border-radius: 50%;
             position: relative;
-            overflow: hidden;
+            backdrop-filter: blur(6px);
         }
 
-        #canvas {
-            display: block;
+        .gauge canvas {
+            position: absolute;
+            top: 0; left: 0;
             width: 100%;
             height: 100%;
         }
 
-        /* Top-left HUD overlay during flight */
-        #hud {
+        .gauge .gtitle {
             position: absolute;
-            top: 12px;
-            left: 12px;
-            background: rgba(10, 20, 50, 0.85);
+            top: 8px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            color: #8ab4ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .gauge .gval {
+            position: absolute;
+            bottom: 16px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .gauge .gunit {
+            position: absolute;
+            bottom: 6px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 9px;
+            color: #8ab4ff;
+        }
+
+        /* Warning lights */
+        #warnings {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(0, 10, 30, 0.85);
             border: 1px solid #4a90e2;
             border-radius: 8px;
-            padding: 12px 16px;
-            font-size: 13px;
-            min-width: 220px;
+            padding: 10px 14px;
+            display: none;
+            font-size: 12px;
             backdrop-filter: blur(6px);
         }
 
-        #hud .row {
+        #warnings.active { display: block; }
+
+        .warn-row {
             display: flex;
-            justify-content: space-between;
-            margin: 3px 0;
+            align-items: center;
+            margin: 4px 0;
         }
 
-        #hud .row .label { color: #8aabd8; }
-        #hud .row .val { color: #fff; font-weight: bold; font-family: monospace; }
-        #hud .row .val.warn { color: #ff6b35; }
-        #hud .row .val.crit { color: #ff3030; animation: pulse 0.5s infinite; }
-        @keyframes pulse { 50% { opacity: 0.5; } }
+        .warn-row .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: #4ade80;
+        }
 
-        /* Throttle bar at bottom of screen */
+        .warn-row .dot.yellow { background: #facc15; box-shadow: 0 0 6px #facc15; }
+        .warn-row .dot.red { background: #ef4444; box-shadow: 0 0 8px #ef4444; animation: blink 0.5s infinite; }
+
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        /* Throttle bar */
         #throttleBar {
             position: absolute;
-            bottom: 20px;
+            bottom: 24px;
             left: 50%;
             transform: translateX(-50%);
-            width: 360px;
-            height: 32px;
-            background: rgba(0, 0, 0, 0.6);
+            width: 380px;
+            height: 36px;
+            background: rgba(0, 10, 30, 0.85);
             border: 2px solid #4a90e2;
-            border-radius: 16px;
+            border-radius: 18px;
             overflow: hidden;
             display: none;
+            backdrop-filter: blur(6px);
         }
+
+        #throttleBar.active { display: block; }
 
         #throttleFill {
             height: 100%;
-            background: linear-gradient(90deg, #ff6b35, #f9c80e);
+            background: linear-gradient(90deg, #ff6b35, #ffd93d);
             width: 0%;
             transition: width 0.05s linear;
         }
 
         #throttleLabel {
             position: absolute;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 14px;
             font-weight: bold;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-        }
-
-        /* Right panel */
-        #panel {
-            width: 340px;
-            background: linear-gradient(180deg, #0a1530 0%, #050918 100%);
-            border-left: 2px solid #4a90e2;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #panel::-webkit-scrollbar { width: 8px; }
-        #panel::-webkit-scrollbar-track { background: #050918; }
-        #panel::-webkit-scrollbar-thumb { background: #2a5599; border-radius: 4px; }
-
-        .section {
-            padding: 14px 16px;
-            border-bottom: 1px solid rgba(74, 144, 226, 0.2);
-        }
-
-        .section h2 {
-            font-size: 13px;
-            color: #4a90e2;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .section h2 .icon { margin-right: 6px; }
-
-        .field { margin-bottom: 10px; }
-        .field label {
-            display: block;
-            font-size: 11px;
-            color: #8aabd8;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-
-        select, input[type="number"] {
-            width: 100%;
-            background: #1a2540;
-            border: 1px solid #2a5599;
-            color: #fff;
-            padding: 8px 10px;
-            border-radius: 5px;
-            font-size: 13px;
-            font-family: inherit;
-        }
-
-        select:focus, input:focus { outline: none; border-color: #4a90e2; }
-
-        .toggle {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #1a2540;
-            border: 1px solid #2a5599;
-            border-radius: 5px;
-            padding: 8px 10px;
-            cursor: pointer;
-            font-size: 13px;
-            margin-bottom: 6px;
-            transition: all 0.15s;
-        }
-
-        .toggle:hover { border-color: #4a90e2; background: #213055; }
-        .toggle.on { background: #1d4d2e; border-color: #4ade80; }
-        .toggle.on .check::after { content: '✓'; color: #4ade80; font-weight: bold; }
-        .toggle .check {
-            width: 18px; height: 18px;
-            border: 1px solid #4a90e2;
-            border-radius: 3px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .toggle .meta { font-size: 11px; color: #8aabd8; }
-
-        /* Stats grid */
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px 10px;
-            font-size: 12px;
-        }
-        .stat-item {
-            background: rgba(74, 144, 226, 0.08);
-            padding: 6px 8px;
-            border-radius: 4px;
-            border-left: 2px solid #4a90e2;
-        }
-        .stat-item .label {
-            color: #8aabd8;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .stat-item .val {
-            color: #fff;
-            font-weight: bold;
-            font-family: monospace;
             font-size: 14px;
         }
-        .stat-item.highlight {
-            background: rgba(74, 222, 128, 0.15);
-            border-left-color: #4ade80;
-        }
-        .stat-item.highlight .val { color: #4ade80; }
-        .stat-item.warn .val { color: #ff6b35; }
 
-        /* Mission buttons */
-        .mission-btn {
-            display: flex;
-            align-items: center;
-            width: 100%;
-            background: linear-gradient(135deg, #1e3a8a, #2563eb);
-            border: 1px solid #4a90e2;
-            color: #fff;
-            padding: 12px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-bottom: 8px;
-            transition: all 0.15s;
-            text-align: left;
-            font-family: inherit;
-        }
-
-        .mission-btn:hover {
-            background: linear-gradient(135deg, #2563eb, #3b82f6);
-            transform: translateX(2px);
-        }
-
-        .mission-btn .emoji { font-size: 22px; margin-right: 10px; }
-        .mission-btn .title { font-weight: bold; font-size: 13px; }
-        .mission-btn .desc { font-size: 11px; color: #c0d5f0; }
-
-        .mission-btn.hard { background: linear-gradient(135deg, #7c2d12, #c2410c); border-color: #ea580c; }
-        .mission-btn.hard:hover { background: linear-gradient(135deg, #c2410c, #ea580c); }
-        .mission-btn.launch {
-            background: linear-gradient(135deg, #14532d, #16a34a);
-            border-color: #4ade80;
-            padding: 16px 14px;
-        }
-        .mission-btn.launch:hover { background: linear-gradient(135deg, #16a34a, #22c55e); }
-
-        /* Log panel */
-        #log {
+        #controlsHint {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
             font-size: 11px;
-            font-family: monospace;
-            line-height: 1.5;
-            max-height: 140px;
-            overflow-y: auto;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 4px;
-            padding: 8px;
+            color: #8ab4ff;
+            background: rgba(0, 10, 30, 0.7);
+            padding: 6px 14px;
+            border-radius: 14px;
+            white-space: nowrap;
         }
 
-        #log .l-info { color: #8aabd8; }
-        #log .l-warn { color: #ff6b35; }
-        #log .l-crit { color: #ff3030; font-weight: bold; }
-        #log .l-good { color: #4ade80; }
+        #controlsHint.active { display: block; }
 
-        /* Help tooltip */
-        .help {
+        .key {
             display: inline-block;
-            width: 14px; height: 14px;
             background: #2a5599;
-            border-radius: 50%;
-            font-size: 10px;
-            text-align: center;
-            line-height: 14px;
-            margin-left: 4px;
-            cursor: help;
+            border: 1px solid #4a90e2;
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-family: monospace;
+            margin: 0 2px;
             color: #fff;
         }
 
-        /* Overlay messages */
-        #overlay {
+        /* Overlays / modals */
+        .overlay {
             position: absolute;
             inset: 0;
             background: rgba(0, 0, 0, 0.85);
@@ -271,89 +376,121 @@
             align-items: center;
             z-index: 100;
             backdrop-filter: blur(8px);
+            padding: 20px;
         }
 
-        #overlay.show { display: flex; }
+        .overlay.show { display: flex; }
 
-        .modal-card {
-            background: linear-gradient(180deg, #0a1530 0%, #1a2540 100%);
+        .modal {
+            background: linear-gradient(180deg, #0d1b3d 0%, #1a2540 100%);
             border: 2px solid #4a90e2;
-            border-radius: 12px;
-            padding: 32px;
-            max-width: 480px;
-            text-align: center;
+            border-radius: 16px;
+            padding: 28px;
+            max-width: 460px;
+            width: 100%;
             box-shadow: 0 20px 60px rgba(74, 144, 226, 0.4);
         }
 
-        .modal-card h2 { font-size: 32px; margin-bottom: 12px; }
-        .modal-card.success h2 { color: #4ade80; }
-        .modal-card.fail h2 { color: #ff6b35; }
-        .modal-card .reason {
+        .modal h2 { font-size: 26px; margin-bottom: 12px; text-align: center; }
+        .modal .planet-info { display: flex; align-items: center; justify-content: center; margin: 14px 0; }
+        .modal .planet-info .pemoji { font-size: 60px; margin-right: 14px; }
+        .modal .briefing-row {
+            display: flex;
+            justify-content: space-between;
             background: rgba(0, 0, 0, 0.3);
-            padding: 12px;
+            padding: 8px 12px;
             border-radius: 6px;
-            margin: 16px 0;
-            font-size: 14px;
-            line-height: 1.5;
-            color: #c0d5f0;
-            font-family: monospace;
+            margin: 6px 0;
+            font-size: 13px;
         }
-        .modal-card button {
-            background: #4a90e2;
-            border: none;
+
+        .modal .briefing-row .label { color: #8ab4ff; }
+        .modal .briefing-row .val { color: #fff; font-weight: bold; }
+
+        .modal .tip {
+            background: rgba(255, 217, 61, 0.1);
+            border-left: 3px solid #ffd93d;
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            margin: 14px 0;
+            color: #fff7d6;
+        }
+
+        .modal .reason {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 14px 0;
+            color: #c0d5f0;
+        }
+
+        .modal .stars-earned {
+            text-align: center;
+            font-size: 48px;
+            margin: 16px 0;
+            letter-spacing: 8px;
+        }
+
+        .big-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #14532d, #16a34a);
+            border: 2px solid #4ade80;
             color: #fff;
-            padding: 12px 32px;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.15s;
+        }
+
+        .big-btn:hover {
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            transform: translateY(-2px);
+        }
+
+        .modal.success h2 { color: #4ade80; }
+        .modal.fail h2 { color: #ff6b35; }
+
+        .secondary-btn {
+            background: rgba(74, 144, 226, 0.2);
+            border: 1px solid #4a90e2;
+            color: #fff;
+            padding: 8px 16px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            margin-top: 12px;
+            margin-top: 8px;
             font-family: inherit;
-        }
-        .modal-card button:hover { background: #3b82f6; }
-
-        /* Bottom controls reminder */
-        #controlsHint {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(10, 20, 50, 0.85);
-            border: 1px solid #4a90e2;
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 11px;
-            display: none;
+            font-size: 13px;
         }
 
-        #controlsHint .key {
-            display: inline-block;
-            background: #2a5599;
-            border: 1px solid #4a90e2;
-            border-radius: 3px;
-            padding: 1px 6px;
-            font-family: monospace;
-            margin: 0 2px;
-        }
+        .secondary-btn:hover { background: rgba(74, 144, 226, 0.4); }
     </style>
 </head>
 <body>
     <div id="stage">
         <canvas id="canvas"></canvas>
 
-        <div id="hud">
-            <div style="font-size: 11px; color: #4a90e2; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">Telemetry</div>
-            <div class="row"><span class="label">Mission</span><span class="val" id="missionDisp">DESIGN</span></div>
-            <div class="row"><span class="label">Planet</span><span class="val" id="planetDisp">Moon</span></div>
-            <div class="row"><span class="label">Altitude</span><span class="val" id="altDisp">0 m</span></div>
-            <div class="row"><span class="label">Velocity</span><span class="val" id="velDisp">0 m/s</span></div>
-            <div class="row"><span class="label">G-Force</span><span class="val" id="gDisp">0.00 G</span></div>
-            <div class="row"><span class="label">Fuel</span><span class="val" id="fuelDisp">0 kg</span></div>
-            <div class="row"><span class="label">Temp</span><span class="val" id="tempDisp">300 K</span></div>
-            <div class="row"><span class="label">Stress</span><span class="val" id="stressDisp">0 MPa</span></div>
+        <div id="gauges">
+            <div class="gauge"><canvas data-gauge="speed"></canvas><div class="gtitle">Speed</div><div class="gval" id="vSpeed">0</div><div class="gunit">m/s</div></div>
+            <div class="gauge"><canvas data-gauge="height"></canvas><div class="gtitle">Height</div><div class="gval" id="vHeight">0</div><div class="gunit">m</div></div>
+            <div class="gauge"><canvas data-gauge="fuel"></canvas><div class="gtitle">Fuel</div><div class="gval" id="vFuel">100</div><div class="gunit">%</div></div>
+            <div class="gauge"><canvas data-gauge="heat"></canvas><div class="gtitle">Heat</div><div class="gval" id="vHeat">300</div><div class="gunit">K</div></div>
+        </div>
+
+        <div id="warnings">
+            <div class="warn-row"><div class="dot" id="dotHull"></div>Hull <span id="lblHull">OK</span></div>
+            <div class="warn-row"><div class="dot" id="dotHeat"></div>Heat <span id="lblHeat">OK</span></div>
         </div>
 
         <div id="controlsHint">
-            <div style="margin-bottom: 4px; color: #4a90e2; font-weight: bold;">CONTROLS</div>
             <span class="key">↑</span><span class="key">↓</span> Throttle &nbsp;
             <span class="key">←</span><span class="key">→</span> Steer &nbsp;
             <span class="key">R</span> Reset
@@ -364,129 +501,115 @@
             <div id="throttleLabel">THROTTLE: 0%</div>
         </div>
 
-        <div id="overlay">
-            <div class="modal-card" id="modalCard">
-                <h2 id="modalTitle">Mission Result</h2>
-                <p id="modalDesc"></p>
-                <div class="reason" id="modalReason"></div>
-                <button onclick="closeOverlay()">Try Again</button>
+        <!-- Briefing modal -->
+        <div class="overlay" id="briefingOverlay">
+            <div class="modal" id="briefingModal">
+                <h2 id="briefTitle">🌙 Mission: Moon</h2>
+                <div class="planet-info">
+                    <div class="pemoji" id="briefEmoji">🌙</div>
+                    <div>
+                        <div style="font-size: 18px; font-weight: bold;" id="briefName">The Moon</div>
+                        <div style="font-size: 13px; color: #8ab4ff;" id="briefTagline">Earth's neighbor — easy mode</div>
+                    </div>
+                </div>
+                <div class="briefing-row"><span class="label">🌍 Gravity</span><span class="val" id="briefGravity">1.62 m/s²</span></div>
+                <div class="briefing-row"><span class="label">💨 Atmosphere</span><span class="val" id="briefAtm">None</span></div>
+                <div class="briefing-row"><span class="label">🎯 Goal</span><span class="val" id="briefGoal">Land safely</span></div>
+                <div class="tip" id="briefTip">💡 Tip: Throttle up to slow your fall before touching down!</div>
+                <button class="big-btn" onclick="engageMission()">🚀 ENGAGE</button>
+                <button class="secondary-btn" onclick="closeBriefing()" style="width: 100%; margin-top: 8px;">← Back to Builder</button>
+            </div>
+        </div>
+
+        <!-- Result modal -->
+        <div class="overlay" id="resultOverlay">
+            <div class="modal" id="resultModal">
+                <h2 id="resultTitle">Mission Result</h2>
+                <div class="stars-earned" id="resultStars">☆☆☆</div>
+                <div class="reason" id="resultReason">...</div>
+                <button class="big-btn" onclick="closeResult()">Continue</button>
             </div>
         </div>
     </div>
 
     <div id="panel">
-        <div class="section">
-            <h2><span class="icon">🚀</span>Rocket Designer</h2>
-            <p style="font-size: 11px; color: #8aabd8; margin-bottom: 10px;">
-                Design your rocket. Watch the preview update on the left!
-            </p>
+        <h1>🚀 ROCKET BUILDER</h1>
 
-            <div class="field">
-                <label>Engine Type</label>
-                <select id="engineType">
-                    <option value="chemical">🔥 Chemical — Powerful (ISP: 350s)</option>
-                    <option value="solidRocket">💥 Solid — Cheap & Fast (ISP: 250s)</option>
-                    <option value="ion">⚡ Ion — Super Efficient (ISP: 3000s)</option>
-                </select>
-            </div>
-
-            <div class="field">
-                <label>Fuel Mass (kg)</label>
-                <input type="number" id="fuelMass" value="1000" min="200" max="5000" step="100">
-            </div>
-
-            <div class="field">
-                <label>Structure Material</label>
-                <select id="material">
-                    <option value="aluminum">Aluminum — Light, Weak (150 MPa)</option>
-                    <option value="steel">Steel — Balanced (250 MPa)</option>
-                    <option value="titanium">Titanium — Heavy, Strong (900 MPa)</option>
-                </select>
-            </div>
-
-            <div class="toggle" id="hsToggle">
-                <div>
-                    <div>🛡️ Heat Shield</div>
-                    <div class="meta">+100 kg, survives re-entry</div>
-                </div>
-                <div class="check"></div>
-            </div>
-
-            <div class="toggle" id="llToggle">
-                <div>
-                    <div>🦵 Landing Legs</div>
-                    <div class="meta">+50 kg, safe landings &lt;5 m/s</div>
-                </div>
-                <div class="check"></div>
-            </div>
+        <div class="slider-card">
+            <div class="label">🔥 Engine Power <span class="num" id="powerNum">5</span></div>
+            <input type="range" min="1" max="10" value="5" id="powerSlider">
+            <div class="desc" id="powerDesc">Medium chemical engine — balanced power</div>
         </div>
 
-        <div class="section">
-            <h2><span class="icon">📊</span>Design Stats</h2>
-            <div class="stats">
-                <div class="stat-item"><div class="label">Dry Mass</div><div class="val" id="dryMass">300 kg</div></div>
-                <div class="stat-item"><div class="label">Total Mass</div><div class="val" id="totalMass">1300 kg</div></div>
-                <div class="stat-item"><div class="label">Max Thrust</div><div class="val" id="maxThrust">2500 kN</div></div>
-                <div class="stat-item" id="twrCard"><div class="label">TWR @ Selected</div><div class="val" id="twr">1.95</div></div>
-                <div class="stat-item highlight" style="grid-column: 1/-1;"><div class="label">⚡ Δv Available</div><div class="val" id="deltaV">3200 m/s</div></div>
-            </div>
-            <p style="font-size: 10px; color: #8aabd8; margin-top: 8px; line-height: 1.4;">
-                💡 <b>Δv</b> = how much velocity change your rocket can produce.<br>
-                💡 <b>TWR</b> = thrust ÷ weight. Need TWR &gt; 1.0 to lift off!
-            </p>
+        <div class="slider-card">
+            <div class="label">🛡️ Body Strength <span class="num" id="strengthNum">5</span></div>
+            <input type="range" min="1" max="10" value="5" id="strengthSlider">
+            <div class="desc" id="strengthDesc">Steel — handles strong forces</div>
         </div>
 
-        <div class="section">
-            <h2><span class="icon">🌍</span>Choose Mission</h2>
-
-            <button class="mission-btn" onclick="startMission('moon')">
-                <span class="emoji">🌙</span>
-                <div>
-                    <div class="title">Moon Landing</div>
-                    <div class="desc">Easy: Low gravity, no atmosphere</div>
-                </div>
-            </button>
-
-            <button class="mission-btn" onclick="startMission('mars')">
-                <span class="emoji">🔴</span>
-                <div>
-                    <div class="title">Mars Landing</div>
-                    <div class="desc">Medium: Thin atmosphere, dust storms</div>
-                </div>
-            </button>
-
-            <button class="mission-btn hard" onclick="startMission('venus')">
-                <span class="emoji">🟡</span>
-                <div>
-                    <div class="title">Venus Descent</div>
-                    <div class="desc">HARD: Crushing pressure, 1500K heat!</div>
-                </div>
-            </button>
-
-            <button class="mission-btn launch" onclick="startMission('earth')">
-                <span class="emoji">🚀</span>
-                <div>
-                    <div class="title">Earth Launch</div>
-                    <div class="desc">Test launch: see if you can leave Earth!</div>
-                </div>
-            </button>
+        <div class="toggle-row">
+            <button class="toggle-btn" id="hsBtn"><span class="emoji">🛡️</span>Heat Shield</button>
+            <button class="toggle-btn" id="llBtn"><span class="emoji">🦵</span>Landing Legs</button>
         </div>
 
-        <div class="section">
-            <h2><span class="icon">📋</span>Mission Log</h2>
-            <div id="log"></div>
+        <div class="score-card" id="scoreCard">
+            <div class="score-label">Rocket Score</div>
+            <div class="score-value" id="scoreValue">--</div>
+            <div class="score-status" id="scoreStatus">Pick a mission</div>
         </div>
+
+        <h2>🌍 Choose Mission</h2>
+
+        <button class="mission-card" data-planet="moon" onclick="openBriefing('moon')">
+            <span class="emoji">🌙</span>
+            <span class="info">
+                <span class="name">Moon</span><br>
+                <span class="diff">Easy · No atmosphere</span>
+            </span>
+            <span class="stars" id="starsMoon">☆☆☆</span>
+        </button>
+
+        <button class="mission-card" data-planet="mars" onclick="openBriefing('mars')" id="mMars">
+            <span class="emoji">🔴</span>
+            <span class="info">
+                <span class="name">Mars</span><br>
+                <span class="diff">Medium · Thin air</span>
+            </span>
+            <span class="stars" id="starsMars">☆☆☆</span>
+        </button>
+
+        <button class="mission-card" data-planet="earth" onclick="openBriefing('earth')" id="mEarth">
+            <span class="emoji">🌍</span>
+            <span class="info">
+                <span class="name">Earth Launch</span><br>
+                <span class="diff">Hard · Heavy gravity</span>
+            </span>
+            <span class="stars" id="starsEarth">☆☆☆</span>
+        </button>
+
+        <button class="mission-card" data-planet="venus" onclick="openBriefing('venus')" id="mVenus">
+            <span class="emoji">🟡</span>
+            <span class="info">
+                <span class="name">Venus</span><br>
+                <span class="diff">EXTREME · Crushing heat</span>
+            </span>
+            <span class="stars" id="starsVenus">☆☆☆</span>
+        </button>
+
+        <p style="font-size: 11px; color: #8ab4ff; text-align: center; margin-top: 14px;">
+            ⭐ Earn stars to unlock harder missions!
+        </p>
     </div>
 
 <script>
 'use strict';
 
-// ─── CONSTANTS ──────────────────────────────────────────────────────────────
+// ─── REAL PHYSICS DATA (untouched) ─────────────────────────────────────────
 const PLANETS = {
-    moon:  { g: 1.62, name: 'Moon',  atm: 0,     scaleH: 1,    color: '#c8c8c8', accent: '#999', maxTemp: 400,  targetAlt: 500 },
-    mars:  { g: 3.71, name: 'Mars',  atm: 0.02,  scaleH: 11.1, color: '#c1440e', accent: '#a03000', maxTemp: 900,  targetAlt: 800 },
-    venus: { g: 8.87, name: 'Venus', atm: 67,    scaleH: 15.9, color: '#f0c040', accent: '#d0a020', maxTemp: 1500, targetAlt: 1200 },
-    earth: { g: 9.81, name: 'Earth', atm: 1.225, scaleH: 8.5,  color: '#4080d0', accent: '#306090', maxTemp: 1200, targetAlt: 1000 },
+    moon:  { g: 1.62, name: 'Moon',  atm: 0,     scaleH: 1,    color: '#c8c8c8', accent: '#999',  maxTemp: 400,  targetAlt: 300, tagline: "Earth's neighbor — easy mode", tip: "💡 No atmosphere = no heat. Just slow down before landing!" },
+    mars:  { g: 3.71, name: 'Mars',  atm: 0.02,  scaleH: 11.1, color: '#c1440e', accent: '#a03000', maxTemp: 900,  targetAlt: 500, tagline: "The Red Planet — thin atmosphere", tip: "💡 Thin atmosphere helps slow you down a bit. Heat shield optional." },
+    venus: { g: 8.87, name: 'Venus', atm: 67,    scaleH: 15.9, color: '#f0c040', accent: '#d0a020', maxTemp: 1500, targetAlt: 800, tagline: "EXTREME — crushing heat & pressure", tip: "🔥 You NEED a heat shield! Atmosphere is 90× thicker than Earth's." },
+    earth: { g: 9.81, name: 'Earth', atm: 1.225, scaleH: 8.5,  color: '#4080d0', accent: '#306090', maxTemp: 1200, targetAlt: 600, tagline: "Home — strong gravity, thick air", tip: "🚀 Strong gravity needs lots of fuel. Heat shield helps with the air." },
 };
 
 const ENGINES = {
@@ -501,44 +624,152 @@ const MATERIALS = {
     titanium: { yield: 900, color: '#a8b0c8' },
 };
 
-// ─── STATE ──────────────────────────────────────────────────────────────────
+// ─── SLIDER LABELS (kid-friendly) ─────────────────────────────────────────
+const POWER_DESCS = [
+    '', // index 0 unused
+    'Tiny ion thruster — super efficient, very slow',
+    'Small ion drive — efficient but weak',
+    'Bigger ion engine — sips fuel',
+    'Small chemical rocket — basic punch',
+    'Medium chemical engine — balanced power',
+    'Strong chemical engine — climbs fast',
+    'Big chemical engine — heavy lifter',
+    'Solid rocket booster — explosive thrust',
+    'Heavy solid booster — wild ride',
+    'MAX power solid booster — moon-shot ready!',
+];
+
+const STRENGTH_DESCS = [
+    '',
+    'Paper-thin aluminum — fragile!',
+    'Thin aluminum — light but bendy',
+    'Aluminum — light, weak under stress',
+    'Reinforced aluminum — slightly stronger',
+    'Steel — handles strong forces',
+    'Hardened steel — tough hull',
+    'Strong steel — survives high G',
+    'Light titanium — strong & light',
+    'Titanium — fortress-grade',
+    'MAX titanium — nothing breaks this!',
+];
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
 let canvas, ctx, cw, ch;
 
 const game = {
-    phase: 'design',  // design | flight | result
+    phase: 'design',  // design | briefing | flight | result
     planet: 'moon',
-    time: 0,
-    dt: 1/60,
+    pendingPlanet: 'moon',
     cameraY: 0,
     stars: [],
+    dt: 1/60,
+    starsEarned: JSON.parse(localStorage.getItem('starsEarned') || '{}'),
 };
 
 const rocket = {
-    // Design
+    powerSlider: 5,
+    strengthSlider: 5,
     engineType: 'chemical',
     fuelMass: 1000,
-    material: 'aluminum',
+    material: 'steel',
     hasHeatShield: false,
     hasLandingLegs: false,
 
-    // Position (meters)
-    x: 0, y: 0,
-    vx: 0, vy: 0,
-    ax: 0, ay: 0,
-    angle: 0,  // radians, 0 = pointing up
-
-    // Flight state
+    x: 0, y: 0, vx: 0, vy: 0, ax: 0, ay: 0,
+    angle: 0,
     fuelRemaining: 1000,
     throttle: 0,
     temperature: 300,
-    integrity: 1.0,  // 1.0 = perfect, 0 = destroyed
+    integrity: 1.0,
     landed: false,
     destroyed: false,
 };
 
 const keys = {};
 
-// ─── INIT ───────────────────────────────────────────────────────────────────
+// ─── SLIDER → PHYSICS MAPPING ─────────────────────────────────────────────
+function applyPowerSlider(p) {
+    rocket.powerSlider = p;
+    if (p <= 3)      { rocket.engineType = 'ion';         rocket.fuelMass = 200 + p * 100; }
+    else if (p <= 7) { rocket.engineType = 'chemical';    rocket.fuelMass = 500 + (p-3) * 250; }
+    else             { rocket.engineType = 'solidRocket'; rocket.fuelMass = 1500 + (p-7) * 600; }
+    rocket.fuelRemaining = rocket.fuelMass;
+}
+
+function applyStrengthSlider(s) {
+    rocket.strengthSlider = s;
+    if (s <= 3)      rocket.material = 'aluminum';
+    else if (s <= 7) rocket.material = 'steel';
+    else             rocket.material = 'titanium';
+}
+
+// ─── PHYSICS ───────────────────────────────────────────────────────────────
+function getDryMass() {
+    let m = 200 + rocket.strengthSlider * 20;  // heavier with stronger material
+    if (rocket.hasHeatShield) m += 100;
+    if (rocket.hasLandingLegs) m += 50;
+    return Math.round(m);
+}
+
+function getTotalMass() { return getDryMass() + rocket.fuelRemaining; }
+
+function getDeltaV() {
+    const eng = ENGINES[rocket.engineType];
+    const m0 = getDryMass() + rocket.fuelMass;
+    const mf = getDryMass();
+    return eng.isp * 9.81 * Math.log(m0 / mf);
+}
+
+function getThrust() { return ENGINES[rocket.engineType].maxThrust * rocket.throttle * 1000; }
+function getMaxThrust() { return ENGINES[rocket.engineType].maxThrust * 1000; }
+
+function getTWR(planet) {
+    const p = PLANETS[planet || game.planet];
+    return getMaxThrust() / (getTotalMass() * p.g);
+}
+
+function getAirDensity(altitude, planetKey) {
+    const p = PLANETS[planetKey || game.planet];
+    if (p.atm === 0) return 0;
+    return p.atm * Math.exp(-altitude / (p.scaleH * 1000));
+}
+
+function getDrag(velocity, altitude) {
+    const rho = getAirDensity(altitude);
+    return 0.5 * rho * velocity * velocity * 0.3 * 2.0;
+}
+
+function getHeatRate(velocity, altitude) {
+    const rho = getAirDensity(altitude);
+    return rho * Math.pow(Math.abs(velocity), 3) * 0.00005;
+}
+
+function getStress() {
+    const a = Math.sqrt(rocket.ax*rocket.ax + rocket.ay*rocket.ay);
+    return (a / 9.81) * 25;
+}
+
+// ─── ROCKET SCORE ──────────────────────────────────────────────────────────
+function calcRocketScore(planetKey) {
+    const p = PLANETS[planetKey || game.pendingPlanet];
+    const dv = getDeltaV();
+    // Required Δv estimate: enough to get up + slow down
+    const requiredDv = Math.sqrt(2 * p.g * p.targetAlt) * 2.5;
+    const dvScore = Math.min(40, dv / requiredDv * 40);
+
+    const yieldS = MATERIALS[rocket.material].yield;
+    const requiredStress = p.g * 30;  // rough
+    const stressScore = Math.min(30, yieldS / requiredStress * 30);
+
+    const heatNeeded = p.atm > 0.5;
+    const heatScore = heatNeeded ? (rocket.hasHeatShield ? 15 : 0) : 15;
+
+    const landScore = rocket.hasLandingLegs ? 15 : 5;
+
+    return Math.round(dvScore + stressScore + heatScore + landScore);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
 function init() {
     canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
@@ -552,32 +783,38 @@ function init() {
     });
     document.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
-    // Wire up design controls
-    document.getElementById('engineType').addEventListener('change', (e) => {
-        rocket.engineType = e.target.value;
-        refresh();
-    });
-    document.getElementById('fuelMass').addEventListener('input', (e) => {
-        rocket.fuelMass = parseInt(e.target.value) || 1000;
-        rocket.fuelRemaining = rocket.fuelMass;
-        refresh();
-    });
-    document.getElementById('material').addEventListener('change', (e) => {
-        rocket.material = e.target.value;
-        refresh();
-    });
-    document.getElementById('hsToggle').addEventListener('click', () => {
-        rocket.hasHeatShield = !rocket.hasHeatShield;
-        document.getElementById('hsToggle').classList.toggle('on', rocket.hasHeatShield);
-        refresh();
-    });
-    document.getElementById('llToggle').addEventListener('click', () => {
-        rocket.hasLandingLegs = !rocket.hasLandingLegs;
-        document.getElementById('llToggle').classList.toggle('on', rocket.hasLandingLegs);
+    // Sliders
+    const ps = document.getElementById('powerSlider');
+    ps.addEventListener('input', () => {
+        const v = parseInt(ps.value);
+        applyPowerSlider(v);
+        document.getElementById('powerNum').textContent = v;
+        document.getElementById('powerDesc').textContent = POWER_DESCS[v];
         refresh();
     });
 
-    // Generate starfield
+    const ss = document.getElementById('strengthSlider');
+    ss.addEventListener('input', () => {
+        const v = parseInt(ss.value);
+        applyStrengthSlider(v);
+        document.getElementById('strengthNum').textContent = v;
+        document.getElementById('strengthDesc').textContent = STRENGTH_DESCS[v];
+        refresh();
+    });
+
+    // Toggles
+    document.getElementById('hsBtn').addEventListener('click', function() {
+        rocket.hasHeatShield = !rocket.hasHeatShield;
+        this.classList.toggle('on', rocket.hasHeatShield);
+        refresh();
+    });
+    document.getElementById('llBtn').addEventListener('click', function() {
+        rocket.hasLandingLegs = !rocket.hasLandingLegs;
+        this.classList.toggle('on', rocket.hasLandingLegs);
+        refresh();
+    });
+
+    // Stars
     for (let i = 0; i < 200; i++) {
         game.stars.push({
             x: Math.random() * 2000 - 1000,
@@ -587,10 +824,13 @@ function init() {
         });
     }
 
-    log('Welcome! Design your rocket on the right →', 'info');
-    log('Then click a mission button to launch!', 'info');
-
+    // Init values
+    applyPowerSlider(5);
+    applyStrengthSlider(5);
     refresh();
+    updateStarDisplay();
+    updateMissionLocks();
+
     requestAnimationFrame(loop);
 }
 
@@ -599,498 +839,32 @@ function resize() {
     ch = canvas.height = canvas.clientHeight;
 }
 
-// ─── PHYSICS HELPERS ────────────────────────────────────────────────────────
-function getDryMass() {
-    let m = 300;  // Base structure
-    if (rocket.hasHeatShield) m += 100;
-    if (rocket.hasLandingLegs) m += 50;
-    return m;
+// ─── BRIEFING & MISSION ────────────────────────────────────────────────────
+function openBriefing(planet) {
+    game.pendingPlanet = planet;
+    const p = PLANETS[planet];
+    const emojis = { moon: '🌙', mars: '🔴', venus: '🟡', earth: '🌍' };
+    document.getElementById('briefTitle').textContent = `Mission: ${p.name}`;
+    document.getElementById('briefEmoji').textContent = emojis[planet];
+    document.getElementById('briefName').textContent = p.name;
+    document.getElementById('briefTagline').textContent = p.tagline;
+    document.getElementById('briefGravity').textContent = p.g.toFixed(2) + ' m/s²';
+    document.getElementById('briefAtm').textContent = p.atm === 0 ? 'None ✓' : p.atm.toFixed(2) + ' kg/m³';
+    document.getElementById('briefGoal').textContent = `Reach ${p.targetAlt} m or land safely`;
+    document.getElementById('briefTip').textContent = p.tip;
+    document.getElementById('briefingOverlay').classList.add('show');
+    refresh(planet);
 }
 
-function getTotalMass() {
-    return getDryMass() + rocket.fuelRemaining;
+function closeBriefing() {
+    document.getElementById('briefingOverlay').classList.remove('show');
 }
 
-function getDeltaV() {
-    const eng = ENGINES[rocket.engineType];
-    const m0 = getDryMass() + rocket.fuelMass;  // full
-    const mf = getDryMass();                     // empty
-    return eng.isp * 9.81 * Math.log(m0 / mf);
+function engageMission() {
+    closeBriefing();
+    startMission(game.pendingPlanet);
 }
 
-function getThrust() {
-    return ENGINES[rocket.engineType].maxThrust * rocket.throttle * 1000;  // N
-}
-
-function getMaxThrust() {
-    return ENGINES[rocket.engineType].maxThrust * 1000;  // N
-}
-
-function getTWR() {
-    const planet = PLANETS[game.planet];
-    return getMaxThrust() / (getTotalMass() * planet.g);
-}
-
-function getAirDensity(altitude) {
-    const planet = PLANETS[game.planet];
-    if (planet.atm === 0) return 0;
-    return planet.atm * Math.exp(-altitude / (planet.scaleH * 1000));
-}
-
-function getDrag(velocity, altitude) {
-    const rho = getAirDensity(altitude);
-    const cd = 0.3;
-    const area = 2.0;  // m²
-    return 0.5 * rho * velocity * velocity * cd * area;
-}
-
-function getHeatRate(velocity, altitude) {
-    const rho = getAirDensity(altitude);
-    return rho * Math.pow(Math.abs(velocity), 3) * 0.00005;  // K/s
-}
-
-function getStress() {
-    const totalAccel = Math.sqrt(rocket.ax*rocket.ax + rocket.ay*rocket.ay);
-    const gforce = totalAccel / 9.81;
-    return gforce * 25;  // Approx MPa from g-force
-}
-
-// ─── PHYSICS UPDATE ─────────────────────────────────────────────────────────
-function updatePhysics() {
-    if (game.phase !== 'flight') return;
-    if (rocket.destroyed || rocket.landed) return;
-
-    const planet = PLANETS[game.planet];
-    const dt = game.dt;
-
-    // Throttle control
-    if (keys['ArrowUp'])   rocket.throttle = Math.min(1, rocket.throttle + 0.03);
-    if (keys['ArrowDown']) rocket.throttle = Math.max(0, rocket.throttle - 0.03);
-    if (keys['ArrowLeft'])  rocket.angle = Math.max(-Math.PI/3, rocket.angle - 0.04);
-    if (keys['ArrowRight']) rocket.angle = Math.min( Math.PI/3, rocket.angle + 0.04);
-
-    // 1. GRAVITY
-    let ax = 0;
-    let ay = -planet.g;  // negative = downward (y is altitude)
-
-    // 2. THRUST
-    const totalMass = getTotalMass();
-    if (rocket.fuelRemaining > 0 && rocket.throttle > 0) {
-        const thrust = getThrust();
-        const thrustAccel = thrust / totalMass;
-        // Angle: 0 = straight up; angle tilts right (+x)
-        ax += thrustAccel * Math.sin(rocket.angle);
-        ay += thrustAccel * Math.cos(rocket.angle);
-
-        // Burn fuel
-        const eng = ENGINES[rocket.engineType];
-        const burnRate = eng.burnRate * rocket.throttle * (eng.maxThrust / 100);
-        rocket.fuelRemaining = Math.max(0, rocket.fuelRemaining - burnRate * dt);
-    }
-
-    // 4. AERODYNAMICS
-    const velocity = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
-    if (velocity > 0.1) {
-        const drag = getDrag(velocity, rocket.y);
-        const dragAccel = drag / totalMass;
-        const vAng = Math.atan2(rocket.vy, rocket.vx);
-        ax -= dragAccel * Math.cos(vAng);
-        ay -= dragAccel * Math.sin(vAng);
-    }
-
-    rocket.ax = ax;
-    rocket.ay = ay;
-
-    // 5. HEAT
-    const heatGain = getHeatRate(velocity, rocket.y);
-    const heatShieldMult = rocket.hasHeatShield ? 0.3 : 1.0;
-    rocket.temperature += heatGain * heatShieldMult * dt;
-    rocket.temperature = Math.max(300, rocket.temperature - 8 * dt);  // Cooling
-
-    // Check overheating
-    if (rocket.temperature > planet.maxTemp) {
-        rocket.integrity -= 0.05 * dt * 30;
-        log(`🔥 OVERHEATING at ${rocket.temperature.toFixed(0)}K!`, 'crit');
-    }
-
-    // 5b. STRESS
-    const stress = getStress();
-    const mat = MATERIALS[rocket.material];
-    if (stress > mat.yield) {
-        rocket.integrity -= (stress - mat.yield) / mat.yield * dt * 0.5;
-        log(`⚠️ Stress exceeded! ${stress.toFixed(0)} > ${mat.yield} MPa`, 'warn');
-    }
-
-    if (rocket.integrity <= 0) {
-        rocket.destroyed = true;
-        endMission(false, 'Structural failure',
-            `Your ${rocket.material} airframe couldn't take it. Stress: ${stress.toFixed(0)} MPa, Temp: ${rocket.temperature.toFixed(0)}K.`);
-        return;
-    }
-
-    // Velocity update
-    rocket.vx += ax * dt;
-    rocket.vy += ay * dt;
-    rocket.x += rocket.vx * dt;
-    rocket.y += rocket.vy * dt;
-
-    // 6. COLLISIONS — Ground impact
-    if (rocket.y < 0) {
-        const impactSpeed = Math.abs(rocket.vy);
-        rocket.y = 0;
-
-        if (rocket.hasLandingLegs && impactSpeed < 5) {
-            rocket.landed = true;
-            rocket.vy = 0; rocket.vx = 0;
-            log(`✓ Safe landing! Impact: ${impactSpeed.toFixed(1)} m/s`, 'good');
-            endMission(true, 'Mission Successful!',
-                `You landed on ${planet.name} with ${rocket.fuelRemaining.toFixed(0)} kg fuel left at ${impactSpeed.toFixed(1)} m/s.`);
-        } else if (impactSpeed < 12 && rocket.hasLandingLegs) {
-            rocket.integrity -= 0.3;
-            rocket.vy = 0;
-            log(`💥 Hard landing: ${impactSpeed.toFixed(1)} m/s, damage taken`, 'warn');
-            if (rocket.integrity < 0.4) {
-                rocket.destroyed = true;
-                endMission(false, 'Hard Crash',
-                    `Landing legs couldn't absorb ${impactSpeed.toFixed(1)} m/s. Slow down to under 5 m/s.`);
-            } else {
-                rocket.landed = true;
-                endMission(true, 'Rough Landing',
-                    `You survived ${planet.name}, but barely. Impact: ${impactSpeed.toFixed(1)} m/s.`);
-            }
-        } else {
-            rocket.destroyed = true;
-            const reason = rocket.hasLandingLegs
-                ? `Hit the ground at ${impactSpeed.toFixed(1)} m/s — too fast. Need less than 5 m/s.`
-                : `No landing legs! Hit the ground at ${impactSpeed.toFixed(1)} m/s.`;
-            endMission(false, 'Crashed!', reason);
-        }
-    }
-
-    // Check fuel out
-    if (rocket.fuelRemaining <= 0 && rocket.throttle > 0) {
-        log('⛽ Out of fuel!', 'warn');
-        rocket.throttle = 0;
-    }
-
-    // Check victory: reach target altitude
-    if (rocket.y > planet.targetAlt && rocket.vy > 0 && game.phase === 'flight') {
-        log(`🌟 Reached space at ${(rocket.y/1000).toFixed(1)} km!`, 'good');
-        endMission(true, 'Reached Space!',
-            `You hit ${(rocket.y/1000).toFixed(1)} km on ${planet.name} with ${rocket.fuelRemaining.toFixed(0)} kg fuel left.`);
-    }
-}
-
-// ─── DRAWING ────────────────────────────────────────────────────────────────
-function draw() {
-    // Sky gradient based on altitude
-    const planet = PLANETS[game.planet];
-    const alt = game.phase === 'flight' ? Math.max(0, rocket.y) : 0;
-    const spaceFactor = Math.min(1, alt / 50000);
-
-    const sky = ctx.createLinearGradient(0, 0, 0, ch);
-    if (game.planet === 'mars') {
-        sky.addColorStop(0, `rgba(40, 5, 0, 1)`);
-        sky.addColorStop(1, `rgba(150, 60, 30, ${1 - spaceFactor*0.7})`);
-    } else if (game.planet === 'venus') {
-        sky.addColorStop(0, `rgba(60, 40, 0, 1)`);
-        sky.addColorStop(1, `rgba(200, 160, 60, ${1 - spaceFactor*0.7})`);
-    } else if (game.planet === 'earth') {
-        sky.addColorStop(0, `rgba(0, 5, 25, 1)`);
-        sky.addColorStop(1, `rgba(80, 130, 200, ${1 - spaceFactor*0.7})`);
-    } else { // moon
-        sky.addColorStop(0, '#000');
-        sky.addColorStop(1, '#000');
-    }
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, cw, ch);
-
-    // Stars (only visible in space or on moon)
-    if (game.planet === 'moon' || spaceFactor > 0.3 || game.phase === 'design') {
-        const starAlpha = game.planet === 'moon' ? 1 : spaceFactor;
-        game.stars.forEach(s => {
-            ctx.fillStyle = `rgba(255,255,255,${s.bright * starAlpha})`;
-            const sx = (cw/2 + s.x) % cw;
-            const sy = (s.y - game.cameraY * 0.1) % ch;
-            ctx.beginPath();
-            ctx.arc(sx, sy < 0 ? sy + ch : sy, s.size, 0, Math.PI*2);
-            ctx.fill();
-        });
-    }
-
-    // Camera follows rocket vertically when flying
-    if (game.phase === 'flight' && rocket.y > 150) {
-        game.cameraY = rocket.y - 150;
-    } else {
-        game.cameraY *= 0.9;  // ease back to ground
-    }
-
-    // Ground / planet surface
-    const groundY = ch - 80 + game.cameraY * 0.6;  // parallax
-    if (groundY < ch) {
-        // Ground gradient
-        const grd = ctx.createLinearGradient(0, groundY, 0, ch);
-        grd.addColorStop(0, planet.color);
-        grd.addColorStop(1, planet.accent);
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, groundY, cw, ch - groundY);
-
-        // Some surface texture (craters/rocks)
-        ctx.fillStyle = planet.accent;
-        for (let i = 0; i < 8; i++) {
-            const cx = (i * 137) % cw;
-            ctx.beginPath();
-            ctx.arc(cx, groundY + 30 + (i % 3) * 10, 8 + (i % 4) * 3, 0, Math.PI*2);
-            ctx.fill();
-        }
-
-        // Launch pad
-        if (game.phase === 'design' || game.cameraY < 50) {
-            ctx.fillStyle = '#444';
-            ctx.fillRect(cw/2 - 40, groundY - 5, 80, 8);
-            ctx.fillStyle = '#222';
-            ctx.fillRect(cw/2 - 35, groundY - 12, 4, 12);
-            ctx.fillRect(cw/2 + 31, groundY - 12, 4, 12);
-        }
-    }
-
-    // Draw rocket — ALWAYS visible
-    drawRocket(groundY);
-
-    // Throttle flame trail
-    if (game.phase === 'flight' && rocket.throttle > 0 && !rocket.destroyed) {
-        // Visual: rocket exhaust particles? simplified for now
-    }
-
-    // Update HUD
-    updateHUD();
-}
-
-function drawRocket(groundY) {
-    const cx = cw / 2 + (rocket.x * 0.5);
-    const cy = (game.phase === 'flight')
-        ? groundY - (rocket.y - game.cameraY)  // fly upward visually
-        : groundY - 50;  // sitting on pad in design
-
-    const eng = ENGINES[rocket.engineType];
-    const mat = MATERIALS[rocket.material];
-    const scale = 1.8;
-    const bodyW = 24 * scale;
-    const bodyH = 60 * scale;
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(rocket.angle);
-
-    // Heat shield (bottom dome)
-    if (rocket.hasHeatShield) {
-        ctx.fillStyle = '#3d3d3d';
-        ctx.beginPath();
-        ctx.ellipse(0, bodyH/2 - 2, bodyW/2 + 4, 8, 0, 0, Math.PI);
-        ctx.fill();
-        ctx.fillStyle = '#5a5a5a';
-        ctx.fillRect(-bodyW/2 - 2, bodyH/2 - 10, bodyW + 4, 6);
-    }
-
-    // Main body
-    ctx.fillStyle = mat.color;
-    ctx.fillRect(-bodyW/2, -bodyH/2, bodyW, bodyH);
-
-    // Body shading (right side darker)
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(bodyW/4, -bodyH/2, bodyW/4, bodyH);
-
-    // Stripe / accent
-    ctx.fillStyle = '#ef4444';
-    ctx.fillRect(-bodyW/2, -bodyH/2 + 14, bodyW, 6);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(-bodyW/2, -bodyH/2 + 22, bodyW, 2);
-
-    // Window
-    ctx.fillStyle = '#90caf9';
-    ctx.beginPath();
-    ctx.arc(0, -bodyH/2 + 35, 6, 0, Math.PI*2);
-    ctx.fill();
-    ctx.strokeStyle = '#1976d2';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Nose cone
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.moveTo(0, -bodyH/2 - 22);
-    ctx.lineTo(-bodyW/2, -bodyH/2 + 4);
-    ctx.lineTo(bodyW/2, -bodyH/2 + 4);
-    ctx.closePath();
-    ctx.fill();
-
-    // Fins
-    ctx.fillStyle = '#dc2626';
-    ctx.beginPath();
-    ctx.moveTo(-bodyW/2, bodyH/2 - 16);
-    ctx.lineTo(-bodyW/2 - 14, bodyH/2 + 6);
-    ctx.lineTo(-bodyW/2, bodyH/2);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(bodyW/2, bodyH/2 - 16);
-    ctx.lineTo(bodyW/2 + 14, bodyH/2 + 6);
-    ctx.lineTo(bodyW/2, bodyH/2);
-    ctx.closePath();
-    ctx.fill();
-
-    // Landing legs
-    if (rocket.hasLandingLegs) {
-        ctx.strokeStyle = '#666';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(-bodyW/2, bodyH/2 - 5);
-        ctx.lineTo(-bodyW/2 - 12, bodyH/2 + 14);
-        ctx.moveTo(bodyW/2, bodyH/2 - 5);
-        ctx.lineTo(bodyW/2 + 12, bodyH/2 + 14);
-        ctx.stroke();
-        // Feet
-        ctx.fillStyle = '#666';
-        ctx.fillRect(-bodyW/2 - 18, bodyH/2 + 13, 10, 3);
-        ctx.fillRect(bodyW/2 + 8, bodyH/2 + 13, 10, 3);
-    }
-
-    // Engine bell
-    ctx.fillStyle = '#2c2c2c';
-    ctx.beginPath();
-    ctx.moveTo(-bodyW/3, bodyH/2);
-    ctx.lineTo(-bodyW/2.2, bodyH/2 + 12);
-    ctx.lineTo(bodyW/2.2, bodyH/2 + 12);
-    ctx.lineTo(bodyW/3, bodyH/2);
-    ctx.closePath();
-    ctx.fill();
-
-    // Flame (when throttling)
-    if (game.phase === 'flight' && rocket.throttle > 0 && rocket.fuelRemaining > 0 && !rocket.destroyed) {
-        const flick = 0.85 + Math.random() * 0.3;
-        const flameLen = (30 + 40 * rocket.throttle) * flick * eng.flameSize;
-        const flameW = bodyW/2.5 * (0.6 + 0.4 * rocket.throttle);
-
-        // Outer flame
-        ctx.fillStyle = eng.flameColor;
-        ctx.beginPath();
-        ctx.moveTo(-flameW, bodyH/2 + 10);
-        ctx.lineTo(flameW, bodyH/2 + 10);
-        ctx.lineTo(flameW * 0.5, bodyH/2 + 12 + flameLen * 0.6);
-        ctx.lineTo(0, bodyH/2 + 12 + flameLen);
-        ctx.lineTo(-flameW * 0.5, bodyH/2 + 12 + flameLen * 0.6);
-        ctx.closePath();
-        ctx.fill();
-
-        // Inner flame
-        ctx.fillStyle = '#fff7d6';
-        ctx.beginPath();
-        ctx.moveTo(-flameW * 0.4, bodyH/2 + 10);
-        ctx.lineTo(flameW * 0.4, bodyH/2 + 10);
-        ctx.lineTo(0, bodyH/2 + 12 + flameLen * 0.5);
-        ctx.closePath();
-        ctx.fill();
-    }
-
-    // Damage indicator
-    if (rocket.integrity < 1 && rocket.integrity > 0) {
-        ctx.strokeStyle = '#ff3030';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        for (let i = 0; i < 5; i++) {
-            const y = -bodyH/2 + (i * bodyH/5) + Math.random()*4;
-            ctx.moveTo(-bodyW/2, y);
-            ctx.lineTo(bodyW/2 - Math.random()*8, y + Math.random()*3 - 1.5);
-        }
-        ctx.stroke();
-    }
-
-    // Heat glow
-    if (rocket.temperature > 600) {
-        const glowAlpha = Math.min(0.7, (rocket.temperature - 600) / 600);
-        const grad = ctx.createRadialGradient(0, 0, 5, 0, 0, bodyH);
-        grad.addColorStop(0, `rgba(255, 100, 0, ${glowAlpha})`);
-        grad.addColorStop(1, 'transparent');
-        ctx.fillStyle = grad;
-        ctx.fillRect(-bodyW, -bodyH, bodyW*2, bodyH*2);
-    }
-
-    ctx.restore();
-
-    // Velocity arrow (during flight, helps player see direction)
-    if (game.phase === 'flight') {
-        const v = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
-        if (v > 5) {
-            ctx.strokeStyle = 'rgba(100, 255, 100, 0.5)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(cx + rocket.vx * 1.5, cy - rocket.vy * 1.5);
-            ctx.stroke();
-        }
-    }
-}
-
-// ─── UI ────────────────────────────────────────────────────────────────────
-function refresh() {
-    document.getElementById('dryMass').textContent = getDryMass() + ' kg';
-    document.getElementById('totalMass').textContent = getTotalMass() + ' kg';
-    document.getElementById('maxThrust').textContent = ENGINES[rocket.engineType].maxThrust + ' kN';
-
-    const twr = getTWR();
-    const twrEl = document.getElementById('twr');
-    twrEl.textContent = twr.toFixed(2);
-    const twrCard = document.getElementById('twrCard');
-    twrCard.classList.remove('warn', 'highlight');
-    if (twr < 1.0) twrCard.classList.add('warn');
-    else if (twr > 2.0) twrCard.classList.add('highlight');
-
-    document.getElementById('deltaV').textContent = getDeltaV().toFixed(0) + ' m/s';
-}
-
-function updateHUD() {
-    document.getElementById('missionDisp').textContent = game.phase.toUpperCase();
-    document.getElementById('planetDisp').textContent = PLANETS[game.planet].name;
-    document.getElementById('altDisp').textContent = Math.max(0, rocket.y).toFixed(0) + ' m';
-    const v = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
-    document.getElementById('velDisp').textContent = v.toFixed(0) + ' m/s';
-    const accel = Math.sqrt(rocket.ax*rocket.ax + rocket.ay*rocket.ay);
-    const gEl = document.getElementById('gDisp');
-    const gforce = accel / 9.81;
-    gEl.textContent = gforce.toFixed(2) + ' G';
-    gEl.className = 'val' + (gforce > 8 ? ' crit' : gforce > 5 ? ' warn' : '');
-
-    document.getElementById('fuelDisp').textContent = rocket.fuelRemaining.toFixed(0) + ' kg';
-    const tempEl = document.getElementById('tempDisp');
-    tempEl.textContent = rocket.temperature.toFixed(0) + ' K';
-    const maxTemp = PLANETS[game.planet].maxTemp;
-    tempEl.className = 'val' + (rocket.temperature > maxTemp * 0.9 ? ' crit' : rocket.temperature > maxTemp * 0.6 ? ' warn' : '');
-
-    const stress = getStress();
-    const stressEl = document.getElementById('stressDisp');
-    stressEl.textContent = stress.toFixed(0) + ' MPa';
-    const yieldS = MATERIALS[rocket.material].yield;
-    stressEl.className = 'val' + (stress > yieldS * 0.9 ? ' crit' : stress > yieldS * 0.6 ? ' warn' : '');
-
-    // Throttle bar
-    const tfill = document.getElementById('throttleFill');
-    const tlabel = document.getElementById('throttleLabel');
-    tfill.style.width = (rocket.throttle * 100) + '%';
-    tlabel.textContent = `THROTTLE: ${(rocket.throttle * 100).toFixed(0)}%`;
-}
-
-function log(msg, type='info') {
-    const el = document.getElementById('log');
-    const div = document.createElement('div');
-    div.className = 'l-' + type;
-    div.textContent = msg;
-    el.appendChild(div);
-    el.scrollTop = el.scrollHeight;
-    // Keep last 30
-    while (el.children.length > 30) el.removeChild(el.firstChild);
-}
-
-// ─── MISSION CONTROL ───────────────────────────────────────────────────────
 function startMission(planet) {
     game.planet = planet;
     game.phase = 'flight';
@@ -1106,37 +880,410 @@ function startMission(planet) {
     rocket.landed = false;
     rocket.destroyed = false;
 
-    document.getElementById('throttleBar').style.display = 'block';
-    document.getElementById('controlsHint').style.display = 'block';
-
-    const p = PLANETS[planet];
-    log(`🚀 Launching to ${p.name}!`, 'good');
-    log(`Gravity: ${p.g} m/s² | Atmosphere: ${p.atm > 0 ? p.atm.toFixed(2) + ' kg/m³' : 'NONE'}`, 'info');
-    log(`Goal: Reach ${p.targetAlt} m altitude. ↑ to throttle up!`, 'info');
-
-    if (p.atm > 10) log('⚠️ Heavy atmosphere — you need a heat shield!', 'warn');
-    if (getTWR() < 1.0) log(`⚠️ WARNING: TWR ${getTWR().toFixed(2)} < 1.0 — rocket may not lift off!`, 'warn');
-
-    refresh();
+    document.getElementById('gauges').classList.add('active');
+    document.getElementById('warnings').classList.add('active');
+    document.getElementById('throttleBar').classList.add('active');
+    document.getElementById('controlsHint').classList.add('active');
 }
 
-function endMission(success, title, reason) {
+// ─── PHYSICS UPDATE ────────────────────────────────────────────────────────
+function updatePhysics() {
+    if (game.phase !== 'flight') return;
+    if (rocket.destroyed || rocket.landed) return;
+
+    const planet = PLANETS[game.planet];
+    const dt = game.dt;
+
+    if (keys['ArrowUp'])   rocket.throttle = Math.min(1, rocket.throttle + 0.03);
+    if (keys['ArrowDown']) rocket.throttle = Math.max(0, rocket.throttle - 0.03);
+    if (keys['ArrowLeft'])  rocket.angle = Math.max(-Math.PI/3, rocket.angle - 0.04);
+    if (keys['ArrowRight']) rocket.angle = Math.min( Math.PI/3, rocket.angle + 0.04);
+
+    let ax = 0, ay = -planet.g;
+
+    const totalMass = getTotalMass();
+    if (rocket.fuelRemaining > 0 && rocket.throttle > 0) {
+        const thrustAccel = getThrust() / totalMass;
+        ax += thrustAccel * Math.sin(rocket.angle);
+        ay += thrustAccel * Math.cos(rocket.angle);
+        const eng = ENGINES[rocket.engineType];
+        const burnRate = eng.burnRate * rocket.throttle * (eng.maxThrust / 100);
+        rocket.fuelRemaining = Math.max(0, rocket.fuelRemaining - burnRate * dt);
+    }
+
+    const velocity = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
+    if (velocity > 0.1) {
+        const drag = getDrag(velocity, rocket.y);
+        const dragAccel = drag / totalMass;
+        const vAng = Math.atan2(rocket.vy, rocket.vx);
+        ax -= dragAccel * Math.cos(vAng);
+        ay -= dragAccel * Math.sin(vAng);
+    }
+
+    rocket.ax = ax;
+    rocket.ay = ay;
+
+    const heatGain = getHeatRate(velocity, rocket.y);
+    const heatShieldMult = rocket.hasHeatShield ? 0.3 : 1.0;
+    rocket.temperature += heatGain * heatShieldMult * dt;
+    rocket.temperature = Math.max(300, rocket.temperature - 8 * dt);
+
+    if (rocket.temperature > planet.maxTemp) {
+        rocket.integrity -= 0.05;
+    }
+
+    const stress = getStress();
+    const mat = MATERIALS[rocket.material];
+    if (stress > mat.yield) {
+        rocket.integrity -= (stress - mat.yield) / mat.yield * dt * 0.5;
+    }
+
+    if (rocket.integrity <= 0) {
+        rocket.destroyed = true;
+        let why = '';
+        if (rocket.temperature > planet.maxTemp) why = `Your rocket got too hot (${rocket.temperature.toFixed(0)}K)! ${rocket.hasHeatShield ? 'Even with the heat shield' : 'You needed a HEAT SHIELD'} for ${planet.name}.`;
+        else why = `The hull broke under ${stress.toFixed(0)} MPa of stress. Your ${rocket.material} body wasn't strong enough — try increasing Body Strength.`;
+        endMission(false, 'Rocket Destroyed!', why, 0);
+        return;
+    }
+
+    rocket.vx += ax * dt;
+    rocket.vy += ay * dt;
+    rocket.x += rocket.vx * dt;
+    rocket.y += rocket.vy * dt;
+
+    if (rocket.y < 0) {
+        const impactSpeed = Math.abs(rocket.vy);
+        rocket.y = 0;
+
+        if (rocket.hasLandingLegs && impactSpeed < 5) {
+            rocket.landed = true;
+            const fuelPct = rocket.fuelRemaining / rocket.fuelMass;
+            let stars = 1;
+            if (impactSpeed < 3 && fuelPct > 0.1) stars = 2;
+            if (impactSpeed < 2 && fuelPct > 0.3) stars = 3;
+            endMission(true, 'Perfect Landing!',
+                `You touched down at ${impactSpeed.toFixed(1)} m/s with ${rocket.fuelRemaining.toFixed(0)} kg of fuel left. ${stars === 3 ? 'Picture-perfect!' : stars === 2 ? 'Smooth!' : 'You made it!'}`,
+                stars);
+        } else if (rocket.hasLandingLegs && impactSpeed < 12) {
+            rocket.landed = true;
+            endMission(true, 'Rough Landing',
+                `You hit the ground at ${impactSpeed.toFixed(1)} m/s — bumpy but you survived. Try slowing down to under 5 m/s for more stars!`,
+                1);
+        } else {
+            rocket.destroyed = true;
+            const why = !rocket.hasLandingLegs
+                ? `No landing legs! You hit the ground at ${impactSpeed.toFixed(1)} m/s. Toggle on 🦵 Landing Legs before launching!`
+                : `Crash landing at ${impactSpeed.toFixed(1)} m/s — way too fast! Throttle UP earlier to slow your descent.`;
+            endMission(false, 'Crashed!', why, 0);
+        }
+    }
+
+    if (rocket.fuelRemaining <= 0 && rocket.throttle > 0) rocket.throttle = 0;
+
+    if (rocket.y > planet.targetAlt && rocket.vy > 0) {
+        const fuelPct = rocket.fuelRemaining / rocket.fuelMass;
+        let stars = 1;
+        if (fuelPct > 0.2) stars = 2;
+        if (fuelPct > 0.5) stars = 3;
+        endMission(true, 'Reached Space!',
+            `You blasted off ${planet.name} and reached ${(rocket.y).toFixed(0)} m! Fuel left: ${rocket.fuelRemaining.toFixed(0)} kg.`,
+            stars);
+    }
+}
+
+// ─── DRAWING ──────────────────────────────────────────────────────────────
+function draw() {
+    const planet = PLANETS[game.planet];
+    const alt = game.phase === 'flight' ? Math.max(0, rocket.y) : 0;
+    const spaceFactor = Math.min(1, alt / 50000);
+
+    const sky = ctx.createLinearGradient(0, 0, 0, ch);
+    if (game.planet === 'mars') {
+        sky.addColorStop(0, `rgba(40, 5, 0, 1)`);
+        sky.addColorStop(1, `rgba(150, 60, 30, ${1 - spaceFactor*0.7})`);
+    } else if (game.planet === 'venus') {
+        sky.addColorStop(0, `rgba(60, 40, 0, 1)`);
+        sky.addColorStop(1, `rgba(200, 160, 60, ${1 - spaceFactor*0.7})`);
+    } else if (game.planet === 'earth') {
+        sky.addColorStop(0, `rgba(0, 5, 25, 1)`);
+        sky.addColorStop(1, `rgba(80, 130, 200, ${1 - spaceFactor*0.7})`);
+    } else {
+        sky.addColorStop(0, '#000');
+        sky.addColorStop(1, '#000');
+    }
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, cw, ch);
+
+    if (game.planet === 'moon' || spaceFactor > 0.3 || game.phase === 'design') {
+        const starAlpha = game.planet === 'moon' ? 1 : spaceFactor;
+        game.stars.forEach(s => {
+            ctx.fillStyle = `rgba(255,255,255,${s.bright * starAlpha})`;
+            const sx = (cw/2 + s.x) % cw;
+            const sy = (s.y - game.cameraY * 0.1) % ch;
+            ctx.beginPath();
+            ctx.arc(sx, sy < 0 ? sy + ch : sy, s.size, 0, Math.PI*2);
+            ctx.fill();
+        });
+    }
+
+    if (game.phase === 'flight' && rocket.y > 150) {
+        game.cameraY = rocket.y - 150;
+    } else {
+        game.cameraY *= 0.9;
+    }
+
+    const groundY = ch - 80 + game.cameraY * 0.6;
+    if (groundY < ch) {
+        const grd = ctx.createLinearGradient(0, groundY, 0, ch);
+        grd.addColorStop(0, planet.color);
+        grd.addColorStop(1, planet.accent);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, groundY, cw, ch - groundY);
+        ctx.fillStyle = planet.accent;
+        for (let i = 0; i < 8; i++) {
+            const cx = (i * 137) % cw;
+            ctx.beginPath();
+            ctx.arc(cx, groundY + 30 + (i % 3) * 10, 8 + (i % 4) * 3, 0, Math.PI*2);
+            ctx.fill();
+        }
+        if (game.phase === 'design' || game.cameraY < 50) {
+            ctx.fillStyle = '#444';
+            ctx.fillRect(cw/2 - 40, groundY - 5, 80, 8);
+            ctx.fillStyle = '#222';
+            ctx.fillRect(cw/2 - 35, groundY - 12, 4, 12);
+            ctx.fillRect(cw/2 + 31, groundY - 12, 4, 12);
+        }
+    }
+
+    drawRocket(groundY);
+    if (game.phase === 'flight') updateGauges();
+}
+
+function drawRocket(groundY) {
+    const cx = cw / 2 + (rocket.x * 0.5);
+    const cy = (game.phase === 'flight') ? groundY - (rocket.y - game.cameraY) : groundY - 50;
+
+    const eng = ENGINES[rocket.engineType];
+    const mat = MATERIALS[rocket.material];
+    const scale = 1.8;
+    const bodyW = 24 * scale;
+    const bodyH = 60 * scale;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rocket.angle);
+
+    if (rocket.hasHeatShield) {
+        ctx.fillStyle = '#3d3d3d';
+        ctx.beginPath();
+        ctx.ellipse(0, bodyH/2 - 2, bodyW/2 + 4, 8, 0, 0, Math.PI);
+        ctx.fill();
+        ctx.fillStyle = '#5a5a5a';
+        ctx.fillRect(-bodyW/2 - 2, bodyH/2 - 10, bodyW + 4, 6);
+    }
+
+    ctx.fillStyle = mat.color;
+    ctx.fillRect(-bodyW/2, -bodyH/2, bodyW, bodyH);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(bodyW/4, -bodyH/2, bodyW/4, bodyH);
+
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-bodyW/2, -bodyH/2 + 14, bodyW, 6);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(-bodyW/2, -bodyH/2 + 22, bodyW, 2);
+
+    ctx.fillStyle = '#90caf9';
+    ctx.beginPath();
+    ctx.arc(0, -bodyH/2 + 35, 6, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#1976d2';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(0, -bodyH/2 - 22);
+    ctx.lineTo(-bodyW/2, -bodyH/2 + 4);
+    ctx.lineTo(bodyW/2, -bodyH/2 + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath();
+    ctx.moveTo(-bodyW/2, bodyH/2 - 16);
+    ctx.lineTo(-bodyW/2 - 14, bodyH/2 + 6);
+    ctx.lineTo(-bodyW/2, bodyH/2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(bodyW/2, bodyH/2 - 16);
+    ctx.lineTo(bodyW/2 + 14, bodyH/2 + 6);
+    ctx.lineTo(bodyW/2, bodyH/2);
+    ctx.closePath();
+    ctx.fill();
+
+    if (rocket.hasLandingLegs) {
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-bodyW/2, bodyH/2 - 5);
+        ctx.lineTo(-bodyW/2 - 12, bodyH/2 + 14);
+        ctx.moveTo(bodyW/2, bodyH/2 - 5);
+        ctx.lineTo(bodyW/2 + 12, bodyH/2 + 14);
+        ctx.stroke();
+        ctx.fillStyle = '#666';
+        ctx.fillRect(-bodyW/2 - 18, bodyH/2 + 13, 10, 3);
+        ctx.fillRect(bodyW/2 + 8, bodyH/2 + 13, 10, 3);
+    }
+
+    ctx.fillStyle = '#2c2c2c';
+    ctx.beginPath();
+    ctx.moveTo(-bodyW/3, bodyH/2);
+    ctx.lineTo(-bodyW/2.2, bodyH/2 + 12);
+    ctx.lineTo(bodyW/2.2, bodyH/2 + 12);
+    ctx.lineTo(bodyW/3, bodyH/2);
+    ctx.closePath();
+    ctx.fill();
+
+    if (game.phase === 'flight' && rocket.throttle > 0 && rocket.fuelRemaining > 0 && !rocket.destroyed) {
+        const flick = 0.85 + Math.random() * 0.3;
+        const flameLen = (30 + 40 * rocket.throttle) * flick * eng.flameSize;
+        const flameW = bodyW/2.5 * (0.6 + 0.4 * rocket.throttle);
+        ctx.fillStyle = eng.flameColor;
+        ctx.beginPath();
+        ctx.moveTo(-flameW, bodyH/2 + 10);
+        ctx.lineTo(flameW, bodyH/2 + 10);
+        ctx.lineTo(flameW * 0.5, bodyH/2 + 12 + flameLen * 0.6);
+        ctx.lineTo(0, bodyH/2 + 12 + flameLen);
+        ctx.lineTo(-flameW * 0.5, bodyH/2 + 12 + flameLen * 0.6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#fff7d6';
+        ctx.beginPath();
+        ctx.moveTo(-flameW * 0.4, bodyH/2 + 10);
+        ctx.lineTo(flameW * 0.4, bodyH/2 + 10);
+        ctx.lineTo(0, bodyH/2 + 12 + flameLen * 0.5);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    if (rocket.temperature > 600) {
+        const glowAlpha = Math.min(0.7, (rocket.temperature - 600) / 600);
+        const grad = ctx.createRadialGradient(0, 0, 5, 0, 0, bodyH);
+        grad.addColorStop(0, `rgba(255, 100, 0, ${glowAlpha})`);
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.fillRect(-bodyW, -bodyH, bodyW*2, bodyH*2);
+    }
+
+    ctx.restore();
+}
+
+// ─── GAUGES (canvas-drawn) ─────────────────────────────────────────────────
+function drawGauge(canvasEl, value, max, color) {
+    const c = canvasEl;
+    if (!c.width) { c.width = 92; c.height = 92; }
+    const g = c.getContext('2d');
+    g.clearRect(0, 0, 92, 92);
+    const cx = 46, cy = 46, r = 36;
+    g.strokeStyle = '#1a2540';
+    g.lineWidth = 6;
+    g.beginPath();
+    g.arc(cx, cy, r, Math.PI * 0.75, Math.PI * 2.25);
+    g.stroke();
+    const pct = Math.min(1, Math.max(0, value / max));
+    g.strokeStyle = color;
+    g.lineWidth = 6;
+    g.beginPath();
+    g.arc(cx, cy, r, Math.PI * 0.75, Math.PI * 0.75 + Math.PI * 1.5 * pct);
+    g.stroke();
+    // Needle
+    const ang = Math.PI * 0.75 + Math.PI * 1.5 * pct;
+    g.strokeStyle = '#fff';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(cx, cy);
+    g.lineTo(cx + Math.cos(ang) * (r - 4), cy + Math.sin(ang) * (r - 4));
+    g.stroke();
+    g.fillStyle = '#fff';
+    g.beginPath();
+    g.arc(cx, cy, 3, 0, Math.PI * 2);
+    g.fill();
+}
+
+function updateGauges() {
+    const planet = PLANETS[game.planet];
+    const v = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
+
+    document.getElementById('vSpeed').textContent = v.toFixed(0);
+    document.getElementById('vHeight').textContent = Math.max(0, rocket.y).toFixed(0);
+    document.getElementById('vFuel').textContent = ((rocket.fuelRemaining / rocket.fuelMass) * 100).toFixed(0);
+    document.getElementById('vHeat').textContent = rocket.temperature.toFixed(0);
+
+    const gauges = document.querySelectorAll('.gauge canvas');
+    drawGauge(gauges[0], v, 200, '#4a90e2');
+    drawGauge(gauges[1], rocket.y, planet.targetAlt, '#22c55e');
+    const fuelPct = rocket.fuelRemaining / rocket.fuelMass;
+    drawGauge(gauges[2], fuelPct, 1, fuelPct > 0.5 ? '#22c55e' : fuelPct > 0.2 ? '#facc15' : '#ef4444');
+    const heatPct = (rocket.temperature - 300) / (planet.maxTemp - 300);
+    drawGauge(gauges[3], heatPct, 1, heatPct < 0.5 ? '#22c55e' : heatPct < 0.8 ? '#facc15' : '#ef4444');
+
+    // Throttle bar
+    document.getElementById('throttleFill').style.width = (rocket.throttle * 100) + '%';
+    document.getElementById('throttleLabel').textContent = `THROTTLE: ${(rocket.throttle * 100).toFixed(0)}%`;
+
+    // Warning lights
+    const stress = getStress();
+    const yieldS = MATERIALS[rocket.material].yield;
+    const hullDot = document.getElementById('dotHull');
+    const hullLbl = document.getElementById('lblHull');
+    if (stress > yieldS * 0.9 || rocket.integrity < 0.5) { hullDot.className = 'dot red'; hullLbl.textContent = 'BREAKING'; }
+    else if (stress > yieldS * 0.6) { hullDot.className = 'dot yellow'; hullLbl.textContent = 'STRESSED'; }
+    else { hullDot.className = 'dot'; hullLbl.textContent = 'OK'; }
+
+    const heatDot = document.getElementById('dotHeat');
+    const heatLbl = document.getElementById('lblHeat');
+    if (rocket.temperature > planet.maxTemp * 0.9) { heatDot.className = 'dot red'; heatLbl.textContent = 'OVERHEAT'; }
+    else if (rocket.temperature > planet.maxTemp * 0.6) { heatDot.className = 'dot yellow'; heatLbl.textContent = 'HOT'; }
+    else { heatDot.className = 'dot'; heatLbl.textContent = 'OK'; }
+}
+
+// ─── REFRESH SCORE ─────────────────────────────────────────────────────────
+function refresh(planetKey) {
+    const score = calcRocketScore(planetKey);
+    const card = document.getElementById('scoreCard');
+    const val = document.getElementById('scoreValue');
+    const status = document.getElementById('scoreStatus');
+    val.textContent = score;
+    card.classList.remove('green', 'yellow', 'red');
+    if (score >= 80) { card.classList.add('green'); status.textContent = '✓ READY!'; }
+    else if (score >= 50) { card.classList.add('yellow'); status.textContent = '⚠ RISKY'; }
+    else { card.classList.add('red'); status.textContent = '✗ WILL FAIL'; }
+}
+
+// ─── RESULT ────────────────────────────────────────────────────────────────
+function endMission(success, title, reason, stars) {
     game.phase = 'result';
-    const overlay = document.getElementById('overlay');
-    const card = document.getElementById('modalCard');
-    const t = document.getElementById('modalTitle');
-    const d = document.getElementById('modalDesc');
-    const r = document.getElementById('modalReason');
+    const modal = document.getElementById('resultModal');
+    modal.className = 'modal ' + (success ? 'success' : 'fail');
+    document.getElementById('resultTitle').textContent = (success ? '🎉 ' : '💥 ') + title;
+    const starStr = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+    document.getElementById('resultStars').innerHTML = `<span style="color:#ffd93d">${starStr}</span>`;
+    document.getElementById('resultReason').textContent = reason;
+    document.getElementById('resultOverlay').classList.add('show');
 
-    card.className = 'modal-card ' + (success ? 'success' : 'fail');
-    t.textContent = (success ? '🎉 ' : '💥 ') + title;
-    d.textContent = success ? 'Great job, future astronaut!' : "Don't give up — analyze and try again!";
-    r.textContent = reason;
-    overlay.classList.add('show');
+    // Save best stars
+    if (success && stars > (game.starsEarned[game.planet] || 0)) {
+        game.starsEarned[game.planet] = stars;
+        localStorage.setItem('starsEarned', JSON.stringify(game.starsEarned));
+    }
+    updateStarDisplay();
+    updateMissionLocks();
 }
 
-function closeOverlay() {
-    document.getElementById('overlay').classList.remove('show');
+function closeResult() {
+    document.getElementById('resultOverlay').classList.remove('show');
     resetToDesign();
 }
 
@@ -1153,16 +1300,32 @@ function resetToDesign() {
     rocket.landed = false;
     rocket.destroyed = false;
     rocket.fuelRemaining = rocket.fuelMass;
-
-    document.getElementById('throttleBar').style.display = 'none';
-    document.getElementById('controlsHint').style.display = 'none';
-    document.getElementById('overlay').classList.remove('show');
-    refresh();
+    document.getElementById('gauges').classList.remove('active');
+    document.getElementById('warnings').classList.remove('active');
+    document.getElementById('throttleBar').classList.remove('active');
+    document.getElementById('controlsHint').classList.remove('active');
+    document.getElementById('resultOverlay').classList.remove('show');
 }
 
-// ─── MAIN LOOP ─────────────────────────────────────────────────────────────
+function updateStarDisplay() {
+    ['moon', 'mars', 'venus', 'earth'].forEach(p => {
+        const el = document.getElementById('stars' + p.charAt(0).toUpperCase() + p.slice(1));
+        if (el) {
+            const earned = game.starsEarned[p] || 0;
+            el.textContent = '★'.repeat(earned) + '☆'.repeat(3 - earned);
+        }
+    });
+}
+
+function updateMissionLocks() {
+    const totalStars = Object.values(game.starsEarned).reduce((a, b) => a + b, 0);
+    document.getElementById('mMars').disabled = (game.starsEarned.moon || 0) < 1;
+    document.getElementById('mEarth').disabled = totalStars < 3;
+    document.getElementById('mVenus').disabled = totalStars < 5;
+}
+
+// ─── LOOP ──────────────────────────────────────────────────────────────────
 function loop() {
-    game.time += game.dt;
     updatePhysics();
     draw();
     requestAnimationFrame(loop);
