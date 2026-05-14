@@ -1360,7 +1360,7 @@ function drawRocket(groundY) {
     const panelVisible = !document.getElementById('panel').classList.contains('hidden');
     const panelShift = panelVisible ? -100 : 0;
     const cx = cw / 2 + (rocket.x * 0.5) + panelShift;
-    const cy = (game.phase === 'flight') ? groundY - (rocket.y - game.cameraY) : groundY - 50;
+    const cy = (game.phase === 'flight') ? ch * 0.45 : groundY - 50;
 
     const eng = ENGINES[rocket.engineType];
     const mat = MATERIALS[rocket.material];
