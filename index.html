@@ -653,10 +653,10 @@
 
 // ─── REAL PHYSICS DATA (untouched) ─────────────────────────────────────────
 const PLANETS = {
-    moon:  { g: 1.62, name: 'Moon',  atm: 0,     scaleH: 1,    color: '#c8c8c8', accent: '#999',  maxTemp: 400,  targetAlt: 300, tagline: "Earth's neighbor — easy mode", tip: "💡 No atmosphere = no heat. Just slow down before landing!" },
-    mars:  { g: 3.71, name: 'Mars',  atm: 0.02,  scaleH: 11.1, color: '#c1440e', accent: '#a03000', maxTemp: 900,  targetAlt: 500, tagline: "The Red Planet — thin atmosphere", tip: "💡 Thin atmosphere helps slow you down a bit. Heat shield optional." },
-    venus: { g: 8.87, name: 'Venus', atm: 67,    scaleH: 15.9, color: '#f0c040', accent: '#d0a020', maxTemp: 1500, targetAlt: 800, tagline: "EXTREME — crushing heat & pressure", tip: "🔥 You NEED a heat shield! Atmosphere is 90× thicker than Earth's." },
-    earth: { g: 9.81, name: 'Earth', atm: 1.225, scaleH: 8.5,  color: '#4080d0', accent: '#306090', maxTemp: 1200, targetAlt: 600, tagline: "Home & Mission Control — where rockets are built", tip: "🚀 Return home! Strong gravity needs fuel. Heat shield helps re-entry. Land safely to get back to the builder!" },
+    moon:  { g: 1.62, name: 'Moon',  atm: 0,     scaleH: 1,    color: '#c8c8c8', accent: '#999',  maxTemp: 400,  targetAlt: 500, tagline: "Earth's neighbor — easy mode", tip: "💡 No atmosphere = no heat. Just slow down before landing!" },
+    mars:  { g: 3.71, name: 'Mars',  atm: 0.02,  scaleH: 11.1, color: '#c1440e', accent: '#a03000', maxTemp: 900,  targetAlt: 1000, tagline: "The Red Planet — thin atmosphere", tip: "💡 Thin atmosphere helps slow you down a bit. Heat shield optional." },
+    venus: { g: 8.87, name: 'Venus', atm: 67,    scaleH: 15.9, color: '#f0c040', accent: '#d0a020', maxTemp: 1500, targetAlt: 1500, tagline: "EXTREME — crushing heat & pressure", tip: "🔥 You NEED a heat shield! Atmosphere is 90× thicker than Earth's." },
+    earth: { g: 9.81, name: 'Earth', atm: 1.225, scaleH: 8.5,  color: '#4080d0', accent: '#306090', maxTemp: 1200, targetAlt: 1200, tagline: "Home & Mission Control — where rockets are built", tip: "🚀 Return home! Strong gravity needs fuel. Heat shield helps re-entry. Land safely to get back to the builder!" },
 };
 
 const ENGINES = {
@@ -1092,6 +1092,11 @@ function closeBriefing() {
 
 function engageMission() {
     closeBriefing();
+    // Auto-hide panel for full-screen flying experience
+    const panel = document.getElementById('panel');
+    if (!panel.classList.contains('hidden')) {
+        togglePanel();
+    }
     startMission(game.pendingPlanet);
 }
 
