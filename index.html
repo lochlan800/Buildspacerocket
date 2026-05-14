@@ -563,6 +563,7 @@
                 <div class="briefing-row"><span class="label">💨 Atmosphere</span><span class="val" id="briefAtm">None</span></div>
                 <div class="briefing-row"><span class="label">🎯 Goal</span><span class="val" id="briefGoal">Land safely</span></div>
                 <div class="tip" id="briefTip">💡 Tip: Throttle up to slow your fall before touching down!</div>
+                <div class="tip" id="angleTip" style="background: rgba(255, 201, 61, 0.15); border-left-color: #ffc93d;">🎯 Escape Requirement: Point nose up (within ±45°) to escape the atmosphere!</div>
                 <button class="big-btn" onclick="engageMission()">🚀 ENGAGE</button>
                 <button class="secondary-btn" onclick="closeBriefing()" style="width: 100%; margin-top: 8px;">← Back to Builder</button>
             </div>
@@ -801,6 +802,23 @@ function getHeatRate(velocity, altitude) {
 function getStress() {
     const a = Math.sqrt(rocket.ax*rocket.ax + rocket.ay*rocket.ay);
     return (a / 9.81) * 25;
+}
+
+function isAngleSafeForEscape(angle, altitude, targetAlt) {
+    const SAFE_CONE = Math.PI / 4;  // 45° tolerance
+    const angleFromVertical = Math.abs(angle);
+
+    if (altitude < targetAlt * 0.7) {
+        return {safe: true, multiplier: 1.0, status: 'OK'};
+    }
+
+    if (angleFromVertical <= SAFE_CONE) {
+        return {safe: true, multiplier: 1.0, status: 'OK'};
+    } else if (angleFromVertical <= SAFE_CONE + Math.PI/12) {
+        return {safe: false, multiplier: 2.0, status: 'WARNING'};
+    } else {
+        return {safe: false, multiplier: 3.0, status: 'UNSAFE'};
+    }
 }
 
 // ─── ROCKET SCORE ──────────────────────────────────────────────────────────
@@ -1071,6 +1089,15 @@ function openBriefing(planet) {
     document.getElementById('briefGoal').textContent = `Reach ${p.targetAlt} m or land safely`;
     document.getElementById('briefTip').textContent = p.tip;
 
+    // Set angle tip based on planet atmosphere
+    const angleTips = {
+        'moon': '🎯 No atmosphere — angle doesn\'t matter for escape. Just get airborne!',
+        'mars': '🎯 Thin atmosphere — maintain upward angle (±45°) during ascent to escape.',
+        'earth': '🎯 Dense atmosphere — keep nose pointed up (±45°) or drag will prevent escape!',
+        'venus': '🎯 CRITICAL: Almost PURE vertical angle required! Tilt even 45° and extreme drag blocks escape.'
+    };
+    document.getElementById('angleTip').textContent = angleTips[planet] || '🎯 Point nose up to escape!';
+
     // Show asteroid conditions
     const density = calculateWaveDensity();
     const densityText = density === 1 ? 'Light ✓' : density <= 4 ? 'Moderate ⚠️' : 'Heavy ⚠️';
@@ -1114,6 +1141,7 @@ function startMission(planet) {
     rocket.integrity = 1.0;
     rocket.landed = false;
     rocket.destroyed = false;
+    rocket.escapeDenialShown = false;
 
     // Reset asteroid system
     game.asteroids = [];
@@ -1156,7 +1184,12 @@ function updatePhysics() {
     const velocity = Math.sqrt(rocket.vx*rocket.vx + rocket.vy*rocket.vy);
     if (velocity > 0.1) {
         const drag = getDrag(velocity, rocket.y);
-        const dragAccel = drag / totalMass;
+        let dragAccel = drag / totalMass;
+
+        // Apply angle penalty for wrong escape angle
+        const escapeCheck = isAngleSafeForEscape(rocket.angle, rocket.y, planet.targetAlt);
+        dragAccel *= escapeCheck.multiplier;
+
         const vAng = Math.atan2(rocket.vy, rocket.vx);
         ax -= dragAccel * Math.cos(vAng);
         ay -= dragAccel * Math.sin(vAng);
@@ -1236,13 +1269,20 @@ function updatePhysics() {
     if (rocket.fuelRemaining <= 0 && rocket.throttle > 0) rocket.throttle = 0;
 
     if (rocket.y > planet.targetAlt && rocket.vy > 0) {
-        const fuelPct = rocket.fuelRemaining / rocket.fuelMass;
-        let stars = 1;
-        if (fuelPct > 0.2) stars = 2;
-        if (fuelPct > 0.5) stars = 3;
-        endMission(true, 'Reached Space!',
-            `You blasted off ${planet.name} and reached ${(rocket.y).toFixed(0)} m! Fuel left: ${rocket.fuelRemaining.toFixed(0)} kg.`,
-            stars);
+        const escapeCheck = isAngleSafeForEscape(rocket.angle, rocket.y, planet.targetAlt);
+        if (escapeCheck.safe) {
+            const fuelPct = rocket.fuelRemaining / rocket.fuelMass;
+            let stars = 1;
+            if (fuelPct > 0.2) stars = 2;
+            if (fuelPct > 0.5) stars = 3;
+            endMission(true, 'Reached Space!',
+                `You blasted off ${planet.name} and reached ${(rocket.y).toFixed(0)} m! Fuel left: ${rocket.fuelRemaining.toFixed(0)} kg.`,
+                stars);
+        } else {
+            if (!rocket.escapeDenialShown) {
+                rocket.escapeDenialShown = true;
+            }
+        }
     }
 }
 
@@ -1506,8 +1546,77 @@ function updateGauges() {
     else if (rocket.temperature > planet.maxTemp * 0.6) { heatDot.className = 'dot yellow'; heatLbl.textContent = 'HOT'; }
     else { heatDot.className = 'dot'; heatLbl.textContent = 'OK'; }
 
+    // Draw escape angle gauge
+    drawEscapeAngleGauge();
+
     // Draw radar
     drawRadar();
+}
+
+function drawEscapeAngleGauge() {
+    const planet = PLANETS[game.planet];
+    const escapeCheck = isAngleSafeForEscape(rocket.angle, rocket.y, planet.targetAlt);
+    const angleDeg = Math.abs(rocket.angle * 180 / Math.PI);
+
+    // Draw gauge box (top-right corner)
+    ctx.fillStyle = 'rgba(13, 27, 61, 0.9)';
+    ctx.fillRect(cw - 150, 16, 134, 134);
+    ctx.strokeStyle = '#4a90e2';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cw - 150, 16, 134, 134);
+
+    const cx = cw - 83;
+    const cy = 83;
+
+    // Draw gauge background circle
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 55, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Draw safe zone (green) - ±45° arc
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 12;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 50, -Math.PI/4, Math.PI/4);
+    ctx.stroke();
+
+    // Draw warning zone (yellow) - 45-60° arcs
+    ctx.strokeStyle = '#ffff00';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 50, -Math.PI/3, -Math.PI/4);
+    ctx.moveTo(cx + 50 * Math.cos(Math.PI/4), cy + 50 * Math.sin(Math.PI/4));
+    ctx.arc(cx, cy, 50, Math.PI/4, Math.PI/3);
+    ctx.stroke();
+
+    // Draw needle pointing to current angle
+    ctx.strokeStyle = escapeCheck.status === 'UNSAFE' ? '#ff0000' :
+                      escapeCheck.status === 'WARNING' ? '#ffff00' : '#00ff00';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    const needleLen = 50;
+    ctx.lineTo(
+        cx + needleLen * Math.sin(rocket.angle),
+        cy - needleLen * Math.cos(rocket.angle)
+    );
+    ctx.stroke();
+
+    // Draw center dot
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw status text
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('ANGLE', cx, cy + 70);
+    ctx.fillText(angleDeg.toFixed(0) + '°', cx, cy + 85);
+    ctx.fillText(escapeCheck.status, cx, cy + 100);
 }
 
 // ─── REFRESH SCORE ─────────────────────────────────────────────────────────
