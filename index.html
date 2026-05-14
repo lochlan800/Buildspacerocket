@@ -1199,7 +1199,9 @@ function updatePhysics() {
     rocket.x += rocket.vx * dt;
     rocket.y += rocket.vy * dt;
 
-    if (rocket.y < 0) {
+    // Don't allow landing in first 1 second (let rocket take off)
+    const timeSinceFlight = (Date.now() - window.flightStartTime) / 1000;
+    if (rocket.y < 0 && timeSinceFlight > 1) {
         const impactSpeed = Math.abs(rocket.vy);
         rocket.y = 0;
 
