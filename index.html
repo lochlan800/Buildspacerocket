@@ -475,22 +475,24 @@
 
         /* Toggle panel button */
         #togglePanelBtn {
-            position: absolute;
+            position: fixed;
             top: 12px;
             right: 12px;
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #4a90e2, #2563eb);
-            border: 2px solid #4a90e2;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 20px;
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #ff6b35, #ffd93d);
+            border: 3px solid #fff;
+            border-radius: 10px;
+            color: #000;
+            font-size: 24px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
-            z-index: 50;
+            z-index: 999;
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.6);
+            font-weight: bold;
         }
 
         #togglePanelBtn:hover {
