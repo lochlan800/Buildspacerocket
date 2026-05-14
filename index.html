@@ -1119,7 +1119,10 @@ function draw() {
 }
 
 function drawRocket(groundY) {
-    const cx = cw / 2 + (rocket.x * 0.5);
+    // Shift rocket left when panel is visible to keep it visible
+    const panelVisible = !document.getElementById('panel').classList.contains('hidden');
+    const panelShift = panelVisible ? -100 : 0;
+    const cx = cw / 2 + (rocket.x * 0.5) + panelShift;
     const cy = (game.phase === 'flight') ? groundY - (rocket.y - game.cameraY) : groundY - 50;
 
     const eng = ENGINES[rocket.engineType];
