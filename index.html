@@ -711,6 +711,13 @@ const game = {
     stars: [],
     dt: 1/60,
     starsEarned: JSON.parse(localStorage.getItem('starsEarned') || '{}'),
+    // Asteroid system
+    asteroids: [],
+    nextWaveTime: 0,
+    waveInterval: 18000,
+    dodgeCount: 0,
+    flightScore: 0,
+    lastAsteroidCount: 0,
 };
 
 const rocket = {
@@ -816,6 +823,159 @@ function calcRocketScore(planetKey) {
     return Math.round(dvScore + stressScore + heatScore + landScore);
 }
 
+// ─── ASTEROID SYSTEM ───────────────────────────────────────────────────────────────
+function calculateWaveDensity() {
+    const densities = { moon: 1, mars: 4, earth: 5, venus: 8 };
+    return densities[game.planet] || 1;
+}
+
+function getNextWaveTime() {
+    const timeMsFromStart = Date.now() - window.flightStartTime;
+    const secondsIntoFlight = Math.floor(timeMsFromStart / 1000);
+    const baseWaveInterval = 18;
+    const nextWaveSeconds = Math.ceil(secondsIntoFlight / baseWaveInterval) * baseWaveInterval;
+    return nextWaveSeconds;
+}
+
+function spawnAsteroidWave() {
+    const density = calculateWaveDensity();
+    const spawnCount = density === 1 ? 1 : Math.floor(Math.random() * 3) + density - 1;
+
+    for (let i = 0; i < spawnCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 1500 + Math.random() * 500;
+        const x = Math.cos(angle) * distance;
+        const y = -Math.sin(angle) * distance - 1000;
+
+        const towardRocket = Math.atan2(-y, -x);
+        const speed = 150 + Math.random() * 100;
+
+        game.asteroids.push({
+            x: x,
+            y: y,
+            vx: Math.cos(towardRocket) * speed,
+            vy: Math.sin(towardRocket) * speed,
+            radius: 35 + Math.random() * 15,
+            active: true
+        });
+    }
+}
+
+function updateAsteroids() {
+    const now = Date.now();
+    const timeMsFromStart = now - window.flightStartTime;
+    const secondsIntoFlight = timeMsFromStart / 1000;
+
+    if (secondsIntoFlight > 5 && secondsIntoFlight % 18 < game.dt * 1000 && game.lastAsteroidCount !== Math.floor(secondsIntoFlight / 18)) {
+        game.lastAsteroidCount = Math.floor(secondsIntoFlight / 18);
+        spawnAsteroidWave();
+    }
+
+    for (let i = game.asteroids.length - 1; i >= 0; i--) {
+        const a = game.asteroids[i];
+        a.x += a.vx * game.dt;
+        a.y += a.vy * game.dt;
+
+        if (Math.abs(a.x) > 3000 || Math.abs(a.y) > 3000) {
+            game.asteroids.splice(i, 1);
+        }
+    }
+}
+
+function checkAsteroidCollisions() {
+    for (let i = game.asteroids.length - 1; i >= 0; i--) {
+        const a = game.asteroids[i];
+        const dx = rocket.x - a.x;
+        const dy = rocket.y - a.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist < 100 + a.radius) {
+            rocket.integrity -= 0.15;
+            game.dodgeCount = 0;
+            game.asteroids.splice(i, 1);
+            break;
+        } else if (dist < 200 + a.radius) {
+            game.dodgeCount++;
+            const multiplier = game.dodgeCount >= 10 ? 3 : game.dodgeCount >= 5 ? 2 : 1;
+            game.flightScore += 10 * multiplier;
+            game.asteroids.splice(i, 1);
+        }
+    }
+}
+
+function drawAsteroids(groundY) {
+    game.asteroids.forEach(a => {
+        const screenX = cw / 2 + a.x * 0.3;
+        const screenY = groundY - (a.y - game.cameraY);
+
+        if (screenX > -a.radius && screenX < cw + a.radius &&
+            screenY > -a.radius && screenY < ch + a.radius) {
+            ctx.fillStyle = '#8b4513';
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, a.radius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#a0522d';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    });
+}
+
+function drawRadar() {
+    const radarX = 125;
+    const radarY = 425;
+    const radarSize = 100;
+
+    ctx.save();
+
+    ctx.fillStyle = 'rgba(0, 20, 40, 0.9)';
+    ctx.beginPath();
+    ctx.arc(radarX, radarY, radarSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#4a90e2';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(74, 144, 226, 0.4)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(radarX, radarY, radarSize * (i / 2), 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(radarX, radarY, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    game.asteroids.forEach(a => {
+        const dx = a.x * 0.3;
+        const dy = -a.y * 0.3;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist < radarSize) {
+            const angle = Math.atan2(dy, dx);
+            const radarDist = (dist / 1000) * radarSize;
+            const blipX = radarX + Math.cos(angle) * radarDist;
+            const blipY = radarY + Math.sin(angle) * radarDist;
+
+            ctx.fillStyle = '#ff4444';
+            ctx.beginPath();
+            ctx.arc(blipX, blipY, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+
+    ctx.fillStyle = '#8ab4ff';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('RADAR', radarX, radarY + radarSize + 16);
+
+    ctx.restore();
+}
+
 // ─── PANEL TOGGLE ─────────────────────────────────────────────────────────────────
 function togglePanel() {
     const panel = document.getElementById('panel');
@@ -910,6 +1070,18 @@ function openBriefing(planet) {
     document.getElementById('briefAtm').textContent = p.atm === 0 ? 'None ✓' : p.atm.toFixed(2) + ' kg/m³';
     document.getElementById('briefGoal').textContent = `Reach ${p.targetAlt} m or land safely`;
     document.getElementById('briefTip').textContent = p.tip;
+
+    // Show asteroid conditions
+    const density = calculateWaveDensity();
+    const densityText = density === 1 ? 'Light ✓' : density <= 4 ? 'Moderate ⚠️' : 'Heavy ⚠️';
+    let conditionsHTML = `<div style="margin-top: 14px; padding: 10px; background: rgba(74,144,226,0.2); border-radius: 8px; font-size: 12px; color: #8ab4ff;">
+        <div style="margin-bottom: 6px;"><strong>Conditions:</strong></div>
+        <div>🚀 Asteroid Density: ${densityText}</div>
+        <div style="margin-top: 4px; font-size: 11px; color: #6fa0d0;">First wave in ~5 seconds</div>
+    </div>`;
+    const briefTipEl = document.getElementById('briefTip');
+    briefTipEl.parentNode.insertAdjacentHTML('afterend', conditionsHTML);
+
     document.getElementById('briefingOverlay').classList.add('show');
     refresh(planet);
 }
@@ -937,6 +1109,13 @@ function startMission(planet) {
     rocket.integrity = 1.0;
     rocket.landed = false;
     rocket.destroyed = false;
+
+    // Reset asteroid system
+    game.asteroids = [];
+    game.dodgeCount = 0;
+    game.flightScore = 0;
+    game.lastAsteroidCount = 0;
+    window.flightStartTime = Date.now();
 
     document.getElementById('gauges').classList.add('active');
     document.getElementById('warnings').classList.add('active');
@@ -1002,6 +1181,16 @@ function updatePhysics() {
         if (rocket.temperature > planet.maxTemp) why = `Your rocket got too hot (${rocket.temperature.toFixed(0)}K)! ${rocket.hasHeatShield ? 'Even with the heat shield' : 'You needed a HEAT SHIELD'} for ${planet.name}.`;
         else why = `The hull broke under ${stress.toFixed(0)} MPa of stress. Your ${rocket.material} body wasn't strong enough — try increasing Body Strength.`;
         endMission(false, 'Rocket Destroyed!', why, 0);
+        return;
+    }
+
+    // Update asteroids
+    updateAsteroids();
+    checkAsteroidCollisions();
+
+    if (rocket.integrity <= 0) {
+        rocket.destroyed = true;
+        endMission(false, 'Asteroid Impact!', 'Your rocket was hit by an asteroid and broke apart!', 0);
         return;
     }
 
@@ -1115,6 +1304,7 @@ function draw() {
     }
 
     drawRocket(groundY);
+    drawAsteroids(groundY);
     if (game.phase === 'flight') updateGauges();
 }
 
@@ -1308,6 +1498,9 @@ function updateGauges() {
     if (rocket.temperature > planet.maxTemp * 0.9) { heatDot.className = 'dot red'; heatLbl.textContent = 'OVERHEAT'; }
     else if (rocket.temperature > planet.maxTemp * 0.6) { heatDot.className = 'dot yellow'; heatLbl.textContent = 'HOT'; }
     else { heatDot.className = 'dot'; heatLbl.textContent = 'OK'; }
+
+    // Draw radar
+    drawRadar();
 }
 
 // ─── REFRESH SCORE ─────────────────────────────────────────────────────────
