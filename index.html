@@ -656,7 +656,7 @@ const PLANETS = {
     moon:  { g: 1.62, name: 'Moon',  atm: 0,     scaleH: 1,    color: '#c8c8c8', accent: '#999',  maxTemp: 400,  targetAlt: 300, tagline: "Earth's neighbor — easy mode", tip: "💡 No atmosphere = no heat. Just slow down before landing!" },
     mars:  { g: 3.71, name: 'Mars',  atm: 0.02,  scaleH: 11.1, color: '#c1440e', accent: '#a03000', maxTemp: 900,  targetAlt: 500, tagline: "The Red Planet — thin atmosphere", tip: "💡 Thin atmosphere helps slow you down a bit. Heat shield optional." },
     venus: { g: 8.87, name: 'Venus', atm: 67,    scaleH: 15.9, color: '#f0c040', accent: '#d0a020', maxTemp: 1500, targetAlt: 800, tagline: "EXTREME — crushing heat & pressure", tip: "🔥 You NEED a heat shield! Atmosphere is 90× thicker than Earth's." },
-    earth: { g: 9.81, name: 'Earth', atm: 1.225, scaleH: 8.5,  color: '#4080d0', accent: '#306090', maxTemp: 1200, targetAlt: 600, tagline: "Home — strong gravity, thick air", tip: "🚀 Strong gravity needs lots of fuel. Heat shield helps with the air." },
+    earth: { g: 9.81, name: 'Earth', atm: 1.225, scaleH: 8.5,  color: '#4080d0', accent: '#306090', maxTemp: 1200, targetAlt: 600, tagline: "Home & Mission Control — where rockets are built", tip: "🚀 Return home! Strong gravity needs fuel. Heat shield helps re-entry. Land safely to get back to the builder!" },
 };
 
 const ENGINES = {
@@ -1325,10 +1325,19 @@ function endMission(success, title, reason, stars) {
     game.phase = 'result';
     const modal = document.getElementById('resultModal');
     modal.className = 'modal ' + (success ? 'success' : 'fail');
-    document.getElementById('resultTitle').textContent = (success ? '🎉 ' : '💥 ') + title;
+
+    // Special case: successful Earth landing is "return home"
+    let displayTitle = title;
+    let displayReason = reason;
+    if (success && game.planet === 'earth') {
+        displayTitle = '🚀 Welcome Home!';
+        displayReason = 'You\'ve successfully returned to Earth! Time to build another rocket and explore the cosmos again.';
+    }
+
+    document.getElementById('resultTitle').textContent = (success ? '🎉 ' : '💥 ') + displayTitle;
     const starStr = '★'.repeat(stars) + '☆'.repeat(3 - stars);
     document.getElementById('resultStars').innerHTML = `<span style="color:#ffd93d">${starStr}</span>`;
-    document.getElementById('resultReason').textContent = reason;
+    document.getElementById('resultReason').textContent = displayReason;
     document.getElementById('resultOverlay').classList.add('show');
 
     // Save best stars
