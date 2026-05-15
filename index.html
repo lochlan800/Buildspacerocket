@@ -573,6 +573,128 @@
             max-width: 100px;
         }
 
+        /* Parts catalog */
+        #partsCatalog {
+            margin-bottom: 12px;
+        }
+
+        .part-cat {
+            margin-bottom: 10px;
+        }
+
+        .part-cat-title {
+            font-size: 10px;
+            color: #8ab4ff;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid rgba(74, 144, 226, 0.3);
+        }
+
+        .part-cat-items {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+
+        .part-card {
+            background: rgba(74, 144, 226, 0.15);
+            border: 1px solid rgba(74, 144, 226, 0.4);
+            border-radius: 8px;
+            padding: 8px 4px;
+            text-align: center;
+            cursor: grab;
+            transition: all 0.15s;
+            user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: none;
+        }
+
+        .part-card:hover {
+            background: rgba(74, 144, 226, 0.3);
+            border-color: #4a90e2;
+            transform: translateY(-1px);
+        }
+
+        .part-card:active {
+            cursor: grabbing;
+        }
+
+        .part-card .icon {
+            font-size: 22px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .part-card .pname {
+            font-size: 9px;
+            color: #c0d5f0;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+
+        /* Stats card */
+        .stats-card {
+            background: rgba(74, 144, 226, 0.1);
+            border: 1px solid rgba(74, 144, 226, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 3px 0;
+        }
+
+        .stats-label {
+            color: #8ab4ff;
+        }
+
+        .stats-val {
+            color: #fff;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .clear-btn {
+            background: rgba(220, 38, 38, 0.2);
+            border: 1px solid #ef4444;
+            color: #fff;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 12px;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .clear-btn:hover {
+            background: rgba(220, 38, 38, 0.4);
+        }
+
+        /* Drag ghost */
+        #dragGhost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+            background: rgba(74, 144, 226, 0.6);
+            border: 2px solid #4a90e2;
+            border-radius: 6px;
+            padding: 4px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        #dragGhost.active { display: block; }
+        #dragGhost .icon { font-size: 22px; display: block; }
+
         /* Mobile responsive — phones & tablets under 500px */
         @media (max-width: 500px) {
             .modal {
@@ -708,28 +830,19 @@
     <div id="panel">
         <h1>🚀 ROCKET BUILDER</h1>
 
-        <div class="slider-card">
-            <div class="label">🔥 Engine Power <span class="num" id="powerNum">5</span></div>
-            <input type="range" min="1" max="10" value="5" id="powerSlider">
-            <div class="desc" id="powerDesc">Medium chemical engine — balanced power</div>
+        <div id="partsCatalog">
+            <!-- Categories injected by JS -->
         </div>
 
-        <div class="slider-card">
-            <div class="label">🛡️ Body Strength <span class="num" id="strengthNum">5</span></div>
-            <input type="range" min="1" max="10" value="5" id="strengthSlider">
-            <div class="desc" id="strengthDesc">Steel — handles strong forces</div>
+        <div class="stats-card">
+            <div class="stats-row"><span class="stats-label">Mass</span><span class="stats-val" id="statsMass">0 kg</span></div>
+            <div class="stats-row"><span class="stats-label">Fuel</span><span class="stats-val" id="statsFuel">0 kg</span></div>
+            <div class="stats-row"><span class="stats-label">Thrust</span><span class="stats-val" id="statsThrust">0 kN</span></div>
+            <div class="stats-row"><span class="stats-label">ΔV</span><span class="stats-val" id="statsDV">0 m/s</span></div>
+            <div class="stats-row"><span class="stats-label">Score</span><span class="stats-val" id="statsScore">--</span></div>
         </div>
 
-        <div class="toggle-row">
-            <button class="toggle-btn" id="hsBtn"><span class="emoji">🛡️</span>Heat Shield</button>
-            <button class="toggle-btn" id="llBtn"><span class="emoji">🦵</span>Landing Legs</button>
-        </div>
-
-        <div class="score-card" id="scoreCard">
-            <div class="score-label">Rocket Score</div>
-            <div class="score-value" id="scoreValue">--</div>
-            <div class="score-status" id="scoreStatus">Pick a mission</div>
-        </div>
+        <button id="clearBtn" class="clear-btn">🗑️ Clear Rocket</button>
 
         <h2>🌍 Choose Mission</h2>
 
@@ -770,9 +883,11 @@
         </button>
 
         <p style="font-size: 11px; color: #8ab4ff; text-align: center; margin-top: 14px;">
-            ⭐ Earn stars to unlock harder missions!
+            ⭐ Drag parts onto the blueprint grid to build your rocket!
         </p>
     </div>
+
+    <div id="dragGhost"></div>
 
 <script>
 'use strict';
@@ -797,34 +912,47 @@ const MATERIALS = {
     titanium: { yield: 900, color: '#a8b0c8' },
 };
 
-// ─── SLIDER LABELS (kid-friendly) ─────────────────────────────────────────
-const POWER_DESCS = [
-    '', // index 0 unused
-    'Tiny ion thruster — super efficient, very slow',
-    'Small ion drive — efficient but weak',
-    'Bigger ion engine — sips fuel',
-    'Small chemical rocket — basic punch',
-    'Medium chemical engine — balanced power',
-    'Strong chemical engine — climbs fast',
-    'Big chemical engine — heavy lifter',
-    'Solid rocket booster — explosive thrust',
-    'Heavy solid booster — wild ride',
-    'MAX power solid booster — moon-shot ready!',
-];
+// ─── PARTS CATALOG ────────────────────────────────────────────────────────
+// Each part: w/h = grid cells, mass = kg, optional fuel/engineType/flags
+const PARTS = {
+    // COMMAND
+    cockpit:     { cat: 'Command',    name: 'Cockpit',       w: 2, h: 2, mass: 80,  color: '#ddd',    icon: '👨‍🚀' },
+    capsule:     { cat: 'Command',    name: 'Crew Capsule',  w: 3, h: 2, mass: 150, color: '#bbb',    icon: '🛸' },
 
-const STRENGTH_DESCS = [
-    '',
-    'Paper-thin aluminum — fragile!',
-    'Thin aluminum — light but bendy',
-    'Aluminum — light, weak under stress',
-    'Reinforced aluminum — slightly stronger',
-    'Steel — handles strong forces',
-    'Hardened steel — tough hull',
-    'Strong steel — survives high G',
-    'Light titanium — strong & light',
-    'Titanium — fortress-grade',
-    'MAX titanium — nothing breaks this!',
-];
+    // FUEL TANKS
+    tankSmall:   { cat: 'Fuel',       name: 'Small Tank',    w: 2, h: 2, mass: 50,  fuel: 200,  color: '#f5f5f5', icon: '⛽' },
+    tankMedium:  { cat: 'Fuel',       name: 'Medium Tank',   w: 2, h: 3, mass: 100, fuel: 600,  color: '#f5f5f5', icon: '⛽' },
+    tankLarge:   { cat: 'Fuel',       name: 'Large Tank',    w: 2, h: 4, mass: 200, fuel: 1500, color: '#f5f5f5', icon: '🛢️' },
+    tankXL:      { cat: 'Fuel',       name: 'XL Tank',       w: 3, h: 5, mass: 400, fuel: 3000, color: '#f5f5f5', icon: '🛢️' },
+
+    // ENGINES
+    engineIon:   { cat: 'Engine',     name: 'Ion Engine',    w: 2, h: 1, mass: 30,  engineType: 'ion',         color: '#42a5f5', icon: '🔵' },
+    engineChem:  { cat: 'Engine',     name: 'Chemical',      w: 2, h: 2, mass: 120, engineType: 'chemical',    color: '#ff5722', icon: '🔥' },
+    engineSolid: { cat: 'Engine',     name: 'Solid Booster', w: 2, h: 3, mass: 250, engineType: 'solidRocket', color: '#ffa726', icon: '🚀' },
+
+    // AERO
+    noseCone:    { cat: 'Aero',       name: 'Nose Cone',     w: 2, h: 2, mass: 30,  dragReduce: 0.3,    color: '#e0e0e0', icon: '🔺' },
+    fins:        { cat: 'Aero',       name: 'Fins',          w: 4, h: 1, mass: 25,  stability: 1,       color: '#888',    icon: '🪶' },
+    parachute:   { cat: 'Aero',       name: 'Parachute',     w: 2, h: 1, mass: 40,  hasParachute: true, color: '#ff9800', icon: '🪂' },
+
+    // LANDING
+    landingLegs: { cat: 'Landing',    name: 'Landing Legs',  w: 4, h: 1, mass: 50,  hasLandingLegs: true, color: '#666',    icon: '🦵' },
+
+    // HEAT
+    heatShield:  { cat: 'Heat',       name: 'Heat Shield',   w: 3, h: 1, mass: 100, hasHeatShield: true,  color: '#3d3d3d', icon: '🛡️' },
+
+    // STRUCTURAL
+    separator:   { cat: 'Structural', name: 'Separator',     w: 2, h: 1, mass: 20,  color: '#444',    icon: '➖' },
+    fairing:     { cat: 'Structural', name: 'Fairing',       w: 3, h: 2, mass: 60,  color: '#888',    icon: '🔻' },
+};
+
+// Categories in display order
+const PART_CATEGORIES = ['Command', 'Fuel', 'Engine', 'Aero', 'Landing', 'Heat', 'Structural'];
+
+// Grid configuration
+const GRID_CELL = 20;     // pixels per grid cell
+const GRID_COLS = 20;     // grid columns in build area (centered)
+const GRID_ROWS = 30;     // grid rows in build area
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
 let canvas, ctx, cw, ch;
@@ -847,17 +975,13 @@ const game = {
 };
 
 const rocket = {
-    powerSlider: 5,
-    strengthSlider: 5,
-    engineType: 'chemical',
-    fuelMass: 1000,
-    material: 'steel',
-    hasHeatShield: false,
-    hasLandingLegs: false,
+    parts: [],            // [{ id, type, gridX, gridY }] — placed parts
+    material: 'steel',    // structural material (fixed for now)
+    fuelMass: 0,          // total fuel capacity (computed from tanks)
 
     x: 0, y: 0, vx: 0, vy: 0, ax: 0, ay: 0,
     angle: 0,
-    fuelRemaining: 1000,
+    fuelRemaining: 0,
     throttle: 0,
     temperature: 300,
     integrity: 1.0,
@@ -865,43 +989,88 @@ const rocket = {
     destroyed: false,
 };
 
+let nextPartId = 1;
+
 const keys = {};
 
-// ─── SLIDER → PHYSICS MAPPING ─────────────────────────────────────────────
-function applyPowerSlider(p) {
-    rocket.powerSlider = p;
-    if (p <= 3)      { rocket.engineType = 'ion';         rocket.fuelMass = 200 + p * 100; }
-    else if (p <= 7) { rocket.engineType = 'chemical';    rocket.fuelMass = 500 + (p-3) * 250; }
-    else             { rocket.engineType = 'solidRocket'; rocket.fuelMass = 1500 + (p-7) * 600; }
-    rocket.fuelRemaining = rocket.fuelMass;
+// ─── PARTS HELPERS ────────────────────────────────────────────────────────
+function hasPart(flagName) {
+    return rocket.parts.some(p => PARTS[p.type][flagName] === true);
 }
 
-function applyStrengthSlider(s) {
-    rocket.strengthSlider = s;
-    if (s <= 3)      rocket.material = 'aluminum';
-    else if (s <= 7) rocket.material = 'steel';
-    else             rocket.material = 'titanium';
+function getActiveEngines() {
+    return rocket.parts.filter(p => PARTS[p.type].engineType);
+}
+
+function getFuelCapacity() {
+    return rocket.parts.reduce((sum, p) => sum + (PARTS[p.type].fuel || 0), 0);
+}
+
+function getAverageISP() {
+    const engines = getActiveEngines();
+    if (engines.length === 0) return 0;
+    return engines.reduce((sum, p) => sum + ENGINES[PARTS[p.type].engineType].isp, 0) / engines.length;
+}
+
+function getRocketBounds() {
+    if (rocket.parts.length === 0) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    rocket.parts.forEach(p => {
+        const def = PARTS[p.type];
+        minX = Math.min(minX, p.gridX);
+        maxX = Math.max(maxX, p.gridX + def.w);
+        minY = Math.min(minY, p.gridY);
+        maxY = Math.max(maxY, p.gridY + def.h);
+    });
+    return { minX, maxX, minY, maxY };
+}
+
+function getRocketValidation() {
+    const hasCockpit = rocket.parts.some(p => PARTS[p.type].cat === 'Command');
+    const hasFuel = getFuelCapacity() > 0;
+    const hasEngine = getActiveEngines().length > 0;
+    return { hasCockpit, hasFuel, hasEngine, valid: hasCockpit && hasFuel && hasEngine };
 }
 
 // ─── PHYSICS ───────────────────────────────────────────────────────────────
 function getDryMass() {
-    let m = 200 + rocket.strengthSlider * 20;  // heavier with stronger material
-    if (rocket.hasHeatShield) m += 100;
-    if (rocket.hasLandingLegs) m += 50;
-    return Math.round(m);
+    return Math.max(100, rocket.parts.reduce((sum, p) => sum + PARTS[p.type].mass, 0));
 }
 
 function getTotalMass() { return getDryMass() + rocket.fuelRemaining; }
 
 function getDeltaV() {
-    const eng = ENGINES[rocket.engineType];
-    const m0 = getDryMass() + rocket.fuelMass;
+    const isp = getAverageISP();
+    if (isp === 0) return 0;
+    const fuelCap = getFuelCapacity();
+    if (fuelCap === 0) return 0;
+    const m0 = getDryMass() + fuelCap;
     const mf = getDryMass();
-    return eng.isp * 9.81 * Math.log(m0 / mf);
+    return isp * 9.81 * Math.log(m0 / mf);
 }
 
-function getThrust() { return ENGINES[rocket.engineType].maxThrust * rocket.throttle * 1000; }
-function getMaxThrust() { return ENGINES[rocket.engineType].maxThrust * 1000; }
+function getThrust() {
+    return getActiveEngines().reduce((sum, p) => sum + ENGINES[PARTS[p.type].engineType].maxThrust, 0) * rocket.throttle * 1000;
+}
+
+function getMaxThrust() {
+    return getActiveEngines().reduce((sum, p) => sum + ENGINES[PARTS[p.type].engineType].maxThrust, 0) * 1000;
+}
+
+// Primary engine type for visual flame (most numerous, fall back to first)
+function getPrimaryEngineType() {
+    const engines = getActiveEngines();
+    if (engines.length === 0) return 'chemical';
+    return PARTS[engines[0].type].engineType;
+}
+
+// Average burn rate across all engines
+function getCombinedBurnRate() {
+    return getActiveEngines().reduce((sum, p) => {
+        const eng = ENGINES[PARTS[p.type].engineType];
+        return sum + eng.burnRate * (eng.maxThrust / 100);
+    }, 0);
+}
 
 function getTWR(planet) {
     const p = PLANETS[planet || game.planet];
@@ -952,16 +1121,16 @@ function calcRocketScore(planetKey) {
     const dv = getDeltaV();
     // Required Δv estimate: enough to get up + slow down
     const requiredDv = Math.sqrt(2 * p.g * p.targetAlt) * 2.5;
-    const dvScore = Math.min(40, dv / requiredDv * 40);
+    const dvScore = requiredDv > 0 ? Math.min(40, dv / requiredDv * 40) : 0;
 
     const yieldS = MATERIALS[rocket.material].yield;
-    const requiredStress = p.g * 30;  // rough
+    const requiredStress = p.g * 30;
     const stressScore = Math.min(30, yieldS / requiredStress * 30);
 
     const heatNeeded = p.atm > 0.5;
-    const heatScore = heatNeeded ? (rocket.hasHeatShield ? 15 : 0) : 15;
+    const heatScore = heatNeeded ? (hasPart('hasHeatShield') ? 15 : 0) : 15;
 
-    const landScore = rocket.hasLandingLegs ? 15 : 5;
+    const landScore = hasPart('hasLandingLegs') ? 15 : 5;
 
     return Math.round(dvScore + stressScore + heatScore + landScore);
 }
@@ -1121,6 +1290,202 @@ function drawRadar() {
     ctx.restore();
 }
 
+// ─── ROCKET BUILDER ───────────────────────────────────────────────────────
+function loadDefaultRocket() {
+    const centerX = Math.floor(GRID_COLS / 2) - 1;
+    rocket.parts = [
+        { id: 1, type: 'cockpit',    gridX: centerX, gridY: 4 },
+        { id: 2, type: 'tankMedium', gridX: centerX, gridY: 6 },
+        { id: 3, type: 'engineChem', gridX: centerX, gridY: 9 },
+    ];
+    nextPartId = 4;
+}
+
+function saveRocket() {
+    localStorage.setItem('rocketParts', JSON.stringify(rocket.parts));
+}
+
+function buildPartsCatalog() {
+    const catalog = document.getElementById('partsCatalog');
+    catalog.innerHTML = '';
+
+    PART_CATEGORIES.forEach(cat => {
+        const catParts = Object.keys(PARTS).filter(key => PARTS[key].cat === cat);
+        if (catParts.length === 0) return;
+
+        const catDiv = document.createElement('div');
+        catDiv.className = 'part-cat';
+        catDiv.innerHTML = `<div class="part-cat-title">${cat}</div><div class="part-cat-items"></div>`;
+        const itemsDiv = catDiv.querySelector('.part-cat-items');
+
+        catParts.forEach(partKey => {
+            const part = PARTS[partKey];
+            const card = document.createElement('div');
+            card.className = 'part-card';
+            card.dataset.partType = partKey;
+            card.innerHTML = `<span class="icon">${part.icon}</span><div class="pname">${part.name}</div>`;
+            itemsDiv.appendChild(card);
+        });
+
+        catalog.appendChild(catDiv);
+    });
+}
+
+// Drag & Drop State
+const drag = {
+    active: false,
+    partType: null,
+    ghostEl: null,
+};
+
+function setupBuilderDragDrop() {
+    drag.ghostEl = document.getElementById('dragGhost');
+
+    // Listen on the panel for pointerdown on part cards
+    document.getElementById('partsCatalog').addEventListener('pointerdown', (e) => {
+        const card = e.target.closest('.part-card');
+        if (!card) return;
+        e.preventDefault();
+        const partType = card.dataset.partType;
+        startDrag(partType, e.clientX, e.clientY);
+    });
+
+    // Global move/up listeners
+    document.addEventListener('pointermove', (e) => {
+        if (!drag.active) return;
+        e.preventDefault();
+        moveDragGhost(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('pointerup', (e) => {
+        if (!drag.active) return;
+        e.preventDefault();
+        finishDrag(e.clientX, e.clientY);
+    });
+
+    // Click on canvas to remove a placed part (design phase only)
+    canvas.addEventListener('pointerdown', (e) => {
+        if (game.phase !== 'design' || drag.active) return;
+        const rect = canvas.getBoundingClientRect();
+        const localX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const localY = (e.clientY - rect.top) * (canvas.height / rect.height);
+        const hit = hitTestPart(localX, localY);
+        if (hit) {
+            rocket.parts = rocket.parts.filter(p => p.id !== hit.id);
+            saveRocket();
+            refresh();
+        }
+    });
+}
+
+function startDrag(partType, clientX, clientY) {
+    drag.active = true;
+    drag.partType = partType;
+    const part = PARTS[partType];
+    drag.ghostEl.innerHTML = `<span class="icon">${part.icon}</span>`;
+    drag.ghostEl.style.width = (part.w * GRID_CELL) + 'px';
+    drag.ghostEl.style.height = (part.h * GRID_CELL) + 'px';
+    drag.ghostEl.classList.add('active');
+    moveDragGhost(clientX, clientY);
+
+    // On mobile, hide the panel so user can see the canvas
+    if (window.innerWidth <= 500) {
+        const panel = document.getElementById('panel');
+        if (!panel.classList.contains('hidden')) {
+            drag.panelWasVisible = true;
+            togglePanel();
+        }
+    }
+}
+
+function moveDragGhost(clientX, clientY) {
+    const part = PARTS[drag.partType];
+    drag.ghostEl.style.left = (clientX - (part.w * GRID_CELL) / 2) + 'px';
+    drag.ghostEl.style.top = (clientY - (part.h * GRID_CELL) / 2) + 'px';
+}
+
+function finishDrag(clientX, clientY) {
+    const part = PARTS[drag.partType];
+    // Test if drop is over canvas
+    const rect = canvas.getBoundingClientRect();
+    if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+        // Convert client coords to canvas internal coords
+        const localX = (clientX - rect.left) * (canvas.width / rect.width);
+        const localY = (clientY - rect.top) * (canvas.height / rect.height);
+        // Convert canvas coords to grid coords (centered grid)
+        const gridOrigin = getGridOrigin();
+        let gridX = Math.round((localX - gridOrigin.x) / GRID_CELL - part.w / 2);
+        let gridY = Math.round((localY - gridOrigin.y) / GRID_CELL - part.h / 2);
+        // Clamp into grid
+        gridX = Math.max(0, Math.min(GRID_COLS - part.w, gridX));
+        gridY = Math.max(0, Math.min(GRID_ROWS - part.h, gridY));
+
+        // Check for collision with existing parts
+        if (!partCollides(drag.partType, gridX, gridY)) {
+            rocket.parts.push({ id: nextPartId++, type: drag.partType, gridX, gridY });
+            saveRocket();
+            refresh();
+        }
+    }
+    // Reset drag state
+    drag.active = false;
+    drag.partType = null;
+    drag.ghostEl.classList.remove('active');
+
+    // Restore panel on mobile
+    if (drag.panelWasVisible && window.innerWidth <= 500) {
+        drag.panelWasVisible = false;
+        const panel = document.getElementById('panel');
+        if (panel.classList.contains('hidden')) togglePanel();
+    }
+}
+
+function partCollides(type, gx, gy) {
+    const def = PARTS[type];
+    return rocket.parts.some(p => {
+        const pDef = PARTS[p.type];
+        return !(gx + def.w <= p.gridX || gx >= p.gridX + pDef.w ||
+                 gy + def.h <= p.gridY || gy >= p.gridY + pDef.h);
+    });
+}
+
+function getGridOrigin() {
+    // Center the grid horizontally in the canvas
+    const gridW = GRID_COLS * GRID_CELL;
+    const gridH = GRID_ROWS * GRID_CELL;
+    const panelVisible = !document.getElementById('panel').classList.contains('hidden');
+    const panelShift = panelVisible ? -50 : 0;
+    return {
+        x: (cw - gridW) / 2 + panelShift,
+        y: (ch - gridH) / 2 + 20,
+    };
+}
+
+function hitTestPart(canvasX, canvasY) {
+    const origin = getGridOrigin();
+    for (let i = rocket.parts.length - 1; i >= 0; i--) {
+        const p = rocket.parts[i];
+        const def = PARTS[p.type];
+        const x = origin.x + p.gridX * GRID_CELL;
+        const y = origin.y + p.gridY * GRID_CELL;
+        if (canvasX >= x && canvasX <= x + def.w * GRID_CELL && canvasY >= y && canvasY <= y + def.h * GRID_CELL) {
+            return p;
+        }
+    }
+    return null;
+}
+
+function updateStats() {
+    const mass = getDryMass();
+    const fuel = getFuelCapacity();
+    const thrust = getMaxThrust() / 1000;
+    const dv = getDeltaV();
+    document.getElementById('statsMass').textContent = mass + ' kg';
+    document.getElementById('statsFuel').textContent = fuel + ' kg';
+    document.getElementById('statsThrust').textContent = thrust.toFixed(0) + ' kN';
+    document.getElementById('statsDV').textContent = dv.toFixed(0) + ' m/s';
+}
+
 // ─── PANEL TOGGLE ─────────────────────────────────────────────────────────────────
 function togglePanel() {
     const panel = document.getElementById('panel');
@@ -1178,35 +1543,19 @@ function init() {
     });
     document.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
-    // Sliders
-    const ps = document.getElementById('powerSlider');
-    ps.addEventListener('input', () => {
-        const v = parseInt(ps.value);
-        applyPowerSlider(v);
-        document.getElementById('powerNum').textContent = v;
-        document.getElementById('powerDesc').textContent = POWER_DESCS[v];
-        refresh();
-    });
+    // Build parts catalog UI
+    buildPartsCatalog();
 
-    const ss = document.getElementById('strengthSlider');
-    ss.addEventListener('input', () => {
-        const v = parseInt(ss.value);
-        applyStrengthSlider(v);
-        document.getElementById('strengthNum').textContent = v;
-        document.getElementById('strengthDesc').textContent = STRENGTH_DESCS[v];
-        refresh();
-    });
+    // Setup drag & drop system
+    setupBuilderDragDrop();
 
-    // Toggles
-    document.getElementById('hsBtn').addEventListener('click', function() {
-        rocket.hasHeatShield = !rocket.hasHeatShield;
-        this.classList.toggle('on', rocket.hasHeatShield);
-        refresh();
-    });
-    document.getElementById('llBtn').addEventListener('click', function() {
-        rocket.hasLandingLegs = !rocket.hasLandingLegs;
-        this.classList.toggle('on', rocket.hasLandingLegs);
-        refresh();
+    // Clear button
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        if (confirm('Clear the rocket and start over?')) {
+            loadDefaultRocket();
+            saveRocket();
+            refresh();
+        }
     });
 
     // Toggle panel
@@ -1222,9 +1571,15 @@ function init() {
         });
     }
 
-    // Init values
-    applyPowerSlider(5);
-    applyStrengthSlider(5);
+    // Load saved rocket or default
+    const saved = JSON.parse(localStorage.getItem('rocketParts') || 'null');
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+        rocket.parts = saved;
+        nextPartId = Math.max(...saved.map(p => p.id), 0) + 1;
+    } else {
+        loadDefaultRocket();
+    }
+
     refresh();
     updateStarDisplay();
     updateMissionLocks();
@@ -1283,6 +1638,15 @@ function closeBriefing() {
 }
 
 function engageMission() {
+    const v = getRocketValidation();
+    if (!v.valid) {
+        let missing = [];
+        if (!v.hasCockpit) missing.push('🧑‍🚀 a Cockpit');
+        if (!v.hasFuel) missing.push('⛽ a Fuel Tank');
+        if (!v.hasEngine) missing.push('🔥 an Engine');
+        alert('Your rocket is missing: ' + missing.join(', ') + '.\n\nDrag these parts from the panel onto the grid before launching!');
+        return;
+    }
     closeBriefing();
     // Auto-hide panel for full-screen flying experience
     const panel = document.getElementById('panel');
@@ -1300,6 +1664,7 @@ function startMission(planet) {
     rocket.vx = 0; rocket.vy = 0;
     rocket.ax = 0; rocket.ay = 0;
     rocket.angle = 0;
+    rocket.fuelMass = getFuelCapacity();
     rocket.fuelRemaining = rocket.fuelMass;
     rocket.throttle = 0;
     rocket.temperature = 300;
@@ -1338,12 +1703,11 @@ function updatePhysics() {
     let ax = 0, ay = -planet.g;
 
     const totalMass = getTotalMass();
-    if (rocket.fuelRemaining > 0 && rocket.throttle > 0) {
+    if (rocket.fuelRemaining > 0 && rocket.throttle > 0 && getActiveEngines().length > 0) {
         const thrustAccel = getThrust() / totalMass;
         ax += thrustAccel * Math.sin(rocket.angle);
         ay += thrustAccel * Math.cos(rocket.angle);
-        const eng = ENGINES[rocket.engineType];
-        const burnRate = eng.burnRate * rocket.throttle * (eng.maxThrust / 100);
+        const burnRate = getCombinedBurnRate() * rocket.throttle;
         rocket.fuelRemaining = Math.max(0, rocket.fuelRemaining - burnRate * dt);
     }
 
@@ -1365,7 +1729,7 @@ function updatePhysics() {
     rocket.ay = ay;
 
     const heatGain = getHeatRate(velocity, rocket.y);
-    const heatShieldMult = rocket.hasHeatShield ? 0.3 : 1.0;
+    const heatShieldMult = hasPart('hasHeatShield') ? 0.3 : 1.0;
     rocket.temperature += heatGain * heatShieldMult * dt;
     rocket.temperature = Math.max(300, rocket.temperature - 8 * dt);
 
@@ -1382,8 +1746,8 @@ function updatePhysics() {
     if (rocket.integrity <= 0) {
         rocket.destroyed = true;
         let why = '';
-        if (rocket.temperature > planet.maxTemp) why = `Your rocket got too hot (${rocket.temperature.toFixed(0)}K)! ${rocket.hasHeatShield ? 'Even with the heat shield' : 'You needed a HEAT SHIELD'} for ${planet.name}.`;
-        else why = `The hull broke under ${stress.toFixed(0)} MPa of stress. Your ${rocket.material} body wasn't strong enough — try increasing Body Strength.`;
+        if (rocket.temperature > planet.maxTemp) why = `Your rocket got too hot (${rocket.temperature.toFixed(0)}K)! ${hasPart('hasHeatShield') ? 'Even with the heat shield' : 'You needed a HEAT SHIELD'} for ${planet.name}.`;
+        else why = `The hull broke under ${stress.toFixed(0)} MPa of stress — add more structural parts or a stronger build.`;
         endMission(false, 'Rocket Destroyed!', why, 0);
         return;
     }
@@ -1409,24 +1773,25 @@ function updatePhysics() {
         const impactSpeed = Math.abs(rocket.vy);
         rocket.y = 0;
 
-        if (rocket.hasLandingLegs && impactSpeed < 5) {
+        const fuelMass = rocket.fuelMass || 1;
+        if (hasPart('hasLandingLegs') && impactSpeed < 5) {
             rocket.landed = true;
-            const fuelPct = rocket.fuelRemaining / rocket.fuelMass;
+            const fuelPct = rocket.fuelRemaining / fuelMass;
             let stars = 1;
             if (impactSpeed < 3 && fuelPct > 0.1) stars = 2;
             if (impactSpeed < 2 && fuelPct > 0.3) stars = 3;
             endMission(true, 'Perfect Landing!',
                 `You touched down at ${impactSpeed.toFixed(1)} m/s with ${rocket.fuelRemaining.toFixed(0)} kg of fuel left. ${stars === 3 ? 'Picture-perfect!' : stars === 2 ? 'Smooth!' : 'You made it!'}`,
                 stars);
-        } else if (rocket.hasLandingLegs && impactSpeed < 12) {
+        } else if (hasPart('hasLandingLegs') && impactSpeed < 12) {
             rocket.landed = true;
             endMission(true, 'Rough Landing',
                 `You hit the ground at ${impactSpeed.toFixed(1)} m/s — bumpy but you survived. Try slowing down to under 5 m/s for more stars!`,
                 1);
         } else {
             rocket.destroyed = true;
-            const why = !rocket.hasLandingLegs
-                ? `No landing legs! You hit the ground at ${impactSpeed.toFixed(1)} m/s. Toggle on 🦵 Landing Legs before launching!`
+            const why = !hasPart('hasLandingLegs')
+                ? `No landing legs! You hit the ground at ${impactSpeed.toFixed(1)} m/s. Add 🦵 Landing Legs to your rocket!`
                 : `Crash landing at ${impactSpeed.toFixed(1)} m/s — way too fast! Throttle UP earlier to slow your descent.`;
             endMission(false, 'Crashed!', why, 0);
         }
@@ -1437,7 +1802,7 @@ function updatePhysics() {
     if (rocket.y > planet.targetAlt && rocket.vy > 0) {
         const escapeCheck = isAngleSafeForEscape(rocket.angle, rocket.y, planet.targetAlt);
         if (escapeCheck.safe) {
-            const fuelPct = rocket.fuelRemaining / rocket.fuelMass;
+            const fuelPct = rocket.fuelRemaining / (rocket.fuelMass || 1);
             let stars = 1;
             if (fuelPct > 0.2) stars = 2;
             if (fuelPct > 0.5) stars = 3;
@@ -1458,6 +1823,15 @@ function draw() {
     const alt = game.phase === 'flight' ? Math.max(0, rocket.y) : 0;
     const spaceFactor = Math.min(1, alt / 50000);
 
+    if (game.phase === 'design') {
+        // Blueprint background
+        ctx.fillStyle = '#0a1a3d';
+        ctx.fillRect(0, 0, cw, ch);
+        drawBlueprintGrid();
+        drawRocket(0);
+        return;
+    }
+
     const sky = ctx.createLinearGradient(0, 0, 0, ch);
     if (game.planet === 'mars') {
         sky.addColorStop(0, `rgba(40, 5, 0, 1)`);
@@ -1475,7 +1849,7 @@ function draw() {
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, cw, ch);
 
-    if (game.planet === 'moon' || spaceFactor > 0.3 || game.phase === 'design') {
+    if (game.planet === 'moon' || spaceFactor > 0.3) {
         const starAlpha = game.planet === 'moon' ? 1 : spaceFactor;
         game.stars.forEach(s => {
             ctx.fillStyle = `rgba(255,255,255,${s.bright * starAlpha})`;
@@ -1507,7 +1881,7 @@ function draw() {
             ctx.arc(cx, groundY + 30 + (i % 3) * 10, 8 + (i % 4) * 3, 0, Math.PI*2);
             ctx.fill();
         }
-        if (game.phase === 'design' || game.cameraY < 50) {
+        if (game.cameraY < 50) {
             ctx.fillStyle = '#444';
             ctx.fillRect(cw/2 - 40, groundY - 5, 80, 8);
             ctx.fillStyle = '#222';
@@ -1521,127 +1895,225 @@ function draw() {
     if (game.phase === 'flight') updateGauges();
 }
 
+function drawBlueprintGrid() {
+    const origin = getGridOrigin();
+    const gridW = GRID_COLS * GRID_CELL;
+    const gridH = GRID_ROWS * GRID_CELL;
+
+    // Light grid lines
+    ctx.strokeStyle = 'rgba(74, 144, 226, 0.2)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= GRID_COLS; x++) {
+        ctx.beginPath();
+        ctx.moveTo(origin.x + x * GRID_CELL, origin.y);
+        ctx.lineTo(origin.x + x * GRID_CELL, origin.y + gridH);
+        ctx.stroke();
+    }
+    for (let y = 0; y <= GRID_ROWS; y++) {
+        ctx.beginPath();
+        ctx.moveTo(origin.x, origin.y + y * GRID_CELL);
+        ctx.lineTo(origin.x + gridW, origin.y + y * GRID_CELL);
+        ctx.stroke();
+    }
+
+    // Bold center vertical line
+    ctx.strokeStyle = 'rgba(74, 144, 226, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(origin.x + gridW / 2, origin.y);
+    ctx.lineTo(origin.x + gridW / 2, origin.y + gridH);
+    ctx.stroke();
+
+    // Ground/launchpad line at bottom of grid
+    ctx.strokeStyle = '#4a90e2';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(origin.x, origin.y + gridH);
+    ctx.lineTo(origin.x + gridW, origin.y + gridH);
+    ctx.stroke();
+
+    // Help text
+    ctx.fillStyle = 'rgba(138, 180, 255, 0.7)';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    if (rocket.parts.length === 0) {
+        ctx.fillText('Drag parts from the panel →', origin.x + gridW / 2, origin.y + gridH / 2);
+        ctx.fillText('to build your rocket!', origin.x + gridW / 2, origin.y + gridH / 2 + 20);
+    } else {
+        ctx.fillText('💡 Tap a placed part to remove it', origin.x + gridW / 2, origin.y + gridH + 22);
+    }
+}
+
 function drawRocket(groundY) {
-    // Shift rocket left when panel is visible to keep it visible
+    if (rocket.parts.length === 0) return;
+
+    if (game.phase === 'design') {
+        // Render each part at its grid position
+        const origin = getGridOrigin();
+        rocket.parts.forEach(p => {
+            const def = PARTS[p.type];
+            const x = origin.x + p.gridX * GRID_CELL;
+            const y = origin.y + p.gridY * GRID_CELL;
+            const w = def.w * GRID_CELL;
+            const h = def.h * GRID_CELL;
+            drawPart(p, x, y, w, h);
+        });
+        return;
+    }
+
+    // Flight phase: render rocket as composite, centered around (cx, cy)
+    const bounds = getRocketBounds();
+    const rocketW = (bounds.maxX - bounds.minX) * GRID_CELL;
+    const rocketH = (bounds.maxY - bounds.minY) * GRID_CELL;
+    const cMassX = (bounds.minX + bounds.maxX) / 2;
+
     const panelVisible = !document.getElementById('panel').classList.contains('hidden');
     const panelShift = panelVisible ? -100 : 0;
     const cx = cw / 2 + (rocket.x * 0.5) + panelShift;
-    const cy = (game.phase === 'flight') ? ch * 0.45 : groundY - 50;
-
-    const eng = ENGINES[rocket.engineType];
-    const mat = MATERIALS[rocket.material];
-    const scale = 1.8;
-    const bodyW = 24 * scale;
-    const bodyH = 60 * scale;
+    const cy = ch * 0.45;
 
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(rocket.angle);
 
-    if (rocket.hasHeatShield) {
-        ctx.fillStyle = '#3d3d3d';
-        ctx.beginPath();
-        ctx.ellipse(0, bodyH/2 - 2, bodyW/2 + 4, 8, 0, 0, Math.PI);
-        ctx.fill();
-        ctx.fillStyle = '#5a5a5a';
-        ctx.fillRect(-bodyW/2 - 2, bodyH/2 - 10, bodyW + 4, 6);
+    // Each part drawn relative to rocket's center of mass (cMassX, bottom)
+    rocket.parts.forEach(p => {
+        const def = PARTS[p.type];
+        const localX = (p.gridX - cMassX) * GRID_CELL;
+        const localY = (p.gridY - bounds.maxY) * GRID_CELL;  // bottom of rocket = 0
+        const w = def.w * GRID_CELL;
+        const h = def.h * GRID_CELL;
+        drawPart(p, localX, localY, w, h);
+    });
+
+    // Flame at bottom-most engines
+    if (rocket.throttle > 0 && rocket.fuelRemaining > 0 && !rocket.destroyed) {
+        const engines = getActiveEngines();
+        engines.forEach(p => {
+            const def = PARTS[p.type];
+            const eng = ENGINES[def.engineType];
+            const engX = (p.gridX - cMassX + def.w / 2) * GRID_CELL;
+            const engY = (p.gridY - bounds.maxY + def.h) * GRID_CELL;
+            const flick = 0.85 + Math.random() * 0.3;
+            const flameLen = (20 + 30 * rocket.throttle) * flick * eng.flameSize;
+            const flameW = (def.w * GRID_CELL) / 3 * (0.6 + 0.4 * rocket.throttle);
+
+            ctx.fillStyle = eng.flameColor;
+            ctx.beginPath();
+            ctx.moveTo(engX - flameW, engY);
+            ctx.lineTo(engX + flameW, engY);
+            ctx.lineTo(engX + flameW * 0.5, engY + flameLen * 0.6);
+            ctx.lineTo(engX, engY + flameLen);
+            ctx.lineTo(engX - flameW * 0.5, engY + flameLen * 0.6);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#fff7d6';
+            ctx.beginPath();
+            ctx.moveTo(engX - flameW * 0.4, engY);
+            ctx.lineTo(engX + flameW * 0.4, engY);
+            ctx.lineTo(engX, engY + flameLen * 0.5);
+            ctx.closePath();
+            ctx.fill();
+        });
     }
 
-    ctx.fillStyle = mat.color;
-    ctx.fillRect(-bodyW/2, -bodyH/2, bodyW, bodyH);
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(bodyW/4, -bodyH/2, bodyW/4, bodyH);
-
-    ctx.fillStyle = '#ef4444';
-    ctx.fillRect(-bodyW/2, -bodyH/2 + 14, bodyW, 6);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(-bodyW/2, -bodyH/2 + 22, bodyW, 2);
-
-    ctx.fillStyle = '#90caf9';
-    ctx.beginPath();
-    ctx.arc(0, -bodyH/2 + 35, 6, 0, Math.PI*2);
-    ctx.fill();
-    ctx.strokeStyle = '#1976d2';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.moveTo(0, -bodyH/2 - 22);
-    ctx.lineTo(-bodyW/2, -bodyH/2 + 4);
-    ctx.lineTo(bodyW/2, -bodyH/2 + 4);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#dc2626';
-    ctx.beginPath();
-    ctx.moveTo(-bodyW/2, bodyH/2 - 16);
-    ctx.lineTo(-bodyW/2 - 14, bodyH/2 + 6);
-    ctx.lineTo(-bodyW/2, bodyH/2);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(bodyW/2, bodyH/2 - 16);
-    ctx.lineTo(bodyW/2 + 14, bodyH/2 + 6);
-    ctx.lineTo(bodyW/2, bodyH/2);
-    ctx.closePath();
-    ctx.fill();
-
-    if (rocket.hasLandingLegs) {
-        ctx.strokeStyle = '#666';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(-bodyW/2, bodyH/2 - 5);
-        ctx.lineTo(-bodyW/2 - 12, bodyH/2 + 14);
-        ctx.moveTo(bodyW/2, bodyH/2 - 5);
-        ctx.lineTo(bodyW/2 + 12, bodyH/2 + 14);
-        ctx.stroke();
-        ctx.fillStyle = '#666';
-        ctx.fillRect(-bodyW/2 - 18, bodyH/2 + 13, 10, 3);
-        ctx.fillRect(bodyW/2 + 8, bodyH/2 + 13, 10, 3);
-    }
-
-    ctx.fillStyle = '#2c2c2c';
-    ctx.beginPath();
-    ctx.moveTo(-bodyW/3, bodyH/2);
-    ctx.lineTo(-bodyW/2.2, bodyH/2 + 12);
-    ctx.lineTo(bodyW/2.2, bodyH/2 + 12);
-    ctx.lineTo(bodyW/3, bodyH/2);
-    ctx.closePath();
-    ctx.fill();
-
-    if (game.phase === 'flight' && rocket.throttle > 0 && rocket.fuelRemaining > 0 && !rocket.destroyed) {
-        const flick = 0.85 + Math.random() * 0.3;
-        const flameLen = (30 + 40 * rocket.throttle) * flick * eng.flameSize;
-        const flameW = bodyW/2.5 * (0.6 + 0.4 * rocket.throttle);
-        ctx.fillStyle = eng.flameColor;
-        ctx.beginPath();
-        ctx.moveTo(-flameW, bodyH/2 + 10);
-        ctx.lineTo(flameW, bodyH/2 + 10);
-        ctx.lineTo(flameW * 0.5, bodyH/2 + 12 + flameLen * 0.6);
-        ctx.lineTo(0, bodyH/2 + 12 + flameLen);
-        ctx.lineTo(-flameW * 0.5, bodyH/2 + 12 + flameLen * 0.6);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#fff7d6';
-        ctx.beginPath();
-        ctx.moveTo(-flameW * 0.4, bodyH/2 + 10);
-        ctx.lineTo(flameW * 0.4, bodyH/2 + 10);
-        ctx.lineTo(0, bodyH/2 + 12 + flameLen * 0.5);
-        ctx.closePath();
-        ctx.fill();
-    }
-
+    // Heat glow
     if (rocket.temperature > 600) {
         const glowAlpha = Math.min(0.7, (rocket.temperature - 600) / 600);
-        const grad = ctx.createRadialGradient(0, 0, 5, 0, 0, bodyH);
+        const grad = ctx.createRadialGradient(0, -rocketH / 2, 5, 0, -rocketH / 2, rocketH);
         grad.addColorStop(0, `rgba(255, 100, 0, ${glowAlpha})`);
         grad.addColorStop(1, 'transparent');
         ctx.fillStyle = grad;
-        ctx.fillRect(-bodyW, -bodyH, bodyW*2, bodyH*2);
+        ctx.fillRect(-rocketW, -rocketH * 1.5, rocketW * 2, rocketH * 2);
     }
 
     ctx.restore();
+}
+
+function drawPart(p, x, y, w, h) {
+    const def = PARTS[p.type];
+
+    // Special part shapes
+    if (p.type === 'noseCone') {
+        // Triangle pointing up
+        ctx.fillStyle = def.color;
+        ctx.beginPath();
+        ctx.moveTo(x + w / 2, y);
+        ctx.lineTo(x, y + h);
+        ctx.lineTo(x + w, y + h);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        return;
+    }
+
+    if (p.type === 'fins') {
+        // Two triangles at bottom corners
+        ctx.fillStyle = def.color;
+        // Left fin
+        ctx.beginPath();
+        ctx.moveTo(x, y + h);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + w * 0.3, y + h * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        // Right fin
+        ctx.beginPath();
+        ctx.moveTo(x + w, y + h);
+        ctx.lineTo(x + w, y);
+        ctx.lineTo(x + w * 0.7, y + h * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        // Middle bar
+        ctx.fillRect(x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.4);
+        return;
+    }
+
+    if (p.type === 'landingLegs') {
+        ctx.strokeStyle = def.color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.2, y);
+        ctx.lineTo(x, y + h);
+        ctx.moveTo(x + w * 0.8, y);
+        ctx.lineTo(x + w, y + h);
+        ctx.stroke();
+        ctx.fillStyle = def.color;
+        ctx.fillRect(x - 2, y + h - 2, w * 0.2, 3);
+        ctx.fillRect(x + w * 0.8, y + h - 2, w * 0.2 + 2, 3);
+        return;
+    }
+
+    if (p.type === 'parachute') {
+        ctx.fillStyle = def.color;
+        ctx.beginPath();
+        ctx.arc(x + w / 2, y + h, w / 2, Math.PI, 0);
+        ctx.fill();
+        return;
+    }
+
+    // Default: filled rectangle with icon
+    ctx.fillStyle = def.color;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+
+    // Engine: add a darker bottom strip
+    if (def.engineType) {
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(x, y + h * 0.7, w, h * 0.3);
+    }
+
+    // Icon centered
+    ctx.fillStyle = '#000';
+    ctx.font = Math.min(w, h) * 0.6 + 'px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(def.icon, x + w / 2, y + h / 2);
 }
 
 // ─── GAUGES (canvas-drawn) ─────────────────────────────────────────────────
@@ -1682,13 +2154,13 @@ function updateGauges() {
 
     document.getElementById('vSpeed').textContent = v.toFixed(0);
     document.getElementById('vHeight').textContent = Math.max(0, rocket.y).toFixed(0);
-    document.getElementById('vFuel').textContent = ((rocket.fuelRemaining / rocket.fuelMass) * 100).toFixed(0);
+    document.getElementById('vFuel').textContent = rocket.fuelMass > 0 ? ((rocket.fuelRemaining / rocket.fuelMass) * 100).toFixed(0) : '0';
     document.getElementById('vHeat').textContent = rocket.temperature.toFixed(0);
 
     const gauges = document.querySelectorAll('.gauge canvas');
     drawGauge(gauges[0], v, 200, '#4a90e2');
     drawGauge(gauges[1], rocket.y, planet.targetAlt, '#22c55e');
-    const fuelPct = rocket.fuelRemaining / rocket.fuelMass;
+    const fuelPct = rocket.fuelMass > 0 ? rocket.fuelRemaining / rocket.fuelMass : 0;
     drawGauge(gauges[2], fuelPct, 1, fuelPct > 0.5 ? '#22c55e' : fuelPct > 0.2 ? '#facc15' : '#ef4444');
     const heatPct = (rocket.temperature - 300) / (planet.maxTemp - 300);
     drawGauge(gauges[3], heatPct, 1, heatPct < 0.5 ? '#22c55e' : heatPct < 0.8 ? '#facc15' : '#ef4444');
@@ -1787,15 +2259,17 @@ function drawEscapeAngleGauge() {
 
 // ─── REFRESH SCORE ─────────────────────────────────────────────────────────
 function refresh(planetKey) {
+    updateStats();
     const score = calcRocketScore(planetKey);
-    const card = document.getElementById('scoreCard');
-    const val = document.getElementById('scoreValue');
-    const status = document.getElementById('scoreStatus');
-    val.textContent = score;
-    card.classList.remove('green', 'yellow', 'red');
-    if (score >= 80) { card.classList.add('green'); status.textContent = '✓ READY!'; }
-    else if (score >= 50) { card.classList.add('yellow'); status.textContent = '⚠ RISKY'; }
-    else { card.classList.add('red'); status.textContent = '✗ WILL FAIL'; }
+    const scoreEl = document.getElementById('statsScore');
+    if (!scoreEl) return;
+    let label;
+    let color;
+    if (score >= 80) { label = score + ' ✓'; color = '#4ade80'; }
+    else if (score >= 50) { label = score + ' ⚠'; color = '#facc15'; }
+    else { label = score + ' ✗'; color = '#ef4444'; }
+    scoreEl.textContent = label;
+    scoreEl.style.color = color;
 }
 
 // ─── RESULT ────────────────────────────────────────────────────────────────
@@ -1844,6 +2318,7 @@ function resetToDesign() {
     rocket.integrity = 1.0;
     rocket.landed = false;
     rocket.destroyed = false;
+    rocket.fuelMass = getFuelCapacity();
     rocket.fuelRemaining = rocket.fuelMass;
     document.getElementById('gauges').classList.remove('active');
     document.getElementById('warnings').classList.remove('active');
