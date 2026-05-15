@@ -1338,29 +1338,48 @@ const drag = {
     ghostEl: null,
 };
 
+let pendingDrag = null;
+
 function setupBuilderDragDrop() {
     drag.ghostEl = document.getElementById('dragGhost');
 
-    // Listen on the panel for pointerdown on part cards
+    // pointerdown on part card → remember start position; don't start drag yet
     document.getElementById('partsCatalog').addEventListener('pointerdown', (e) => {
         const card = e.target.closest('.part-card');
         if (!card) return;
         e.preventDefault();
-        const partType = card.dataset.partType;
-        startDrag(partType, e.clientX, e.clientY);
+        pendingDrag = {
+            partType: card.dataset.partType,
+            startX: e.clientX,
+            startY: e.clientY,
+        };
     });
 
-    // Global move/up listeners
+    // Global move: promote pendingDrag to real drag if user moves enough, else update ghost
     document.addEventListener('pointermove', (e) => {
-        if (!drag.active) return;
-        e.preventDefault();
-        moveDragGhost(e.clientX, e.clientY);
+        if (pendingDrag && !drag.active) {
+            const dx = e.clientX - pendingDrag.startX;
+            const dy = e.clientY - pendingDrag.startY;
+            if (Math.sqrt(dx*dx + dy*dy) > 6) {
+                startDrag(pendingDrag.partType, e.clientX, e.clientY);
+                pendingDrag = null;
+            }
+        }
+        if (drag.active) {
+            e.preventDefault();
+            moveDragGhost(e.clientX, e.clientY);
+        }
     });
 
+    // Global pointerup: if no drag started, treat as tap → auto-stack the part
     document.addEventListener('pointerup', (e) => {
-        if (!drag.active) return;
-        e.preventDefault();
-        finishDrag(e.clientX, e.clientY);
+        if (pendingDrag && !drag.active) {
+            autoStackPart(pendingDrag.partType);
+            pendingDrag = null;
+        } else if (drag.active) {
+            e.preventDefault();
+            finishDrag(e.clientX, e.clientY);
+        }
     });
 
     // Click on canvas to remove a placed part (design phase only)
@@ -1376,6 +1395,46 @@ function setupBuilderDragDrop() {
             refresh();
         }
     });
+}
+
+function autoStackPart(partType) {
+    const def = PARTS[partType];
+    const centerX = Math.floor((GRID_COLS - def.w) / 2);
+
+    // Find bottom-most part — new part goes below it
+    let lowestY = 2;  // start near top if rocket is empty
+    if (rocket.parts.length > 0) {
+        rocket.parts.forEach(p => {
+            const pDef = PARTS[p.type];
+            lowestY = Math.max(lowestY, p.gridY + pDef.h);
+        });
+    }
+
+    // Scan downward for first empty slot at centerX
+    let tryY = lowestY;
+    while (tryY + def.h <= GRID_ROWS) {
+        if (!partCollides(partType, centerX, tryY)) {
+            rocket.parts.push({ id: nextPartId++, type: partType, gridX: centerX, gridY: tryY });
+            saveRocket();
+            refresh();
+            return true;
+        }
+        tryY++;
+    }
+    showPlacementWarning('🚫 No space left — drag for custom placement.');
+    return false;
+}
+
+function showPlacementWarning(msg) {
+    // Remove any existing toast first
+    const existing = document.getElementById('placementToast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'placementToast';
+    toast.textContent = msg;
+    toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ef4444;color:#fff;padding:10px 18px;border-radius:8px;z-index:10000;font-weight:bold;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.5);pointer-events:none;';
+    document.body.appendChild(toast);
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 2000);
 }
 
 function startDrag(partType, clientX, clientY) {
@@ -1400,37 +1459,75 @@ function startDrag(partType, clientX, clientY) {
 
 function moveDragGhost(clientX, clientY) {
     const part = PARTS[drag.partType];
-    drag.ghostEl.style.left = (clientX - (part.w * GRID_CELL) / 2) + 'px';
-    drag.ghostEl.style.top = (clientY - (part.h * GRID_CELL) / 2) + 'px';
+    const rect = canvas.getBoundingClientRect();
+    const overCanvas = clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+
+    if (overCanvas) {
+        // Snap to grid cell
+        const localX = (clientX - rect.left) * (canvas.width / rect.width);
+        const localY = (clientY - rect.top) * (canvas.height / rect.height);
+        const origin = getGridOrigin();
+        let gridX = Math.round((localX - origin.x) / GRID_CELL - part.w / 2);
+        let gridY = Math.round((localY - origin.y) / GRID_CELL - part.h / 2);
+        gridX = Math.max(0, Math.min(GRID_COLS - part.w, gridX));
+        gridY = Math.max(0, Math.min(GRID_ROWS - part.h, gridY));
+
+        // Convert snapped grid coords back to screen-space for ghost positioning
+        const snapClientX = rect.left + (origin.x + gridX * GRID_CELL) * (rect.width / canvas.width);
+        const snapClientY = rect.top + (origin.y + gridY * GRID_CELL) * (rect.height / canvas.height);
+        drag.ghostEl.style.left = snapClientX + 'px';
+        drag.ghostEl.style.top = snapClientY + 'px';
+
+        // Color the ghost based on collision
+        const colliding = partCollides(drag.partType, gridX, gridY);
+        drag.ghostEl.style.borderColor = colliding ? '#ef4444' : '#4ade80';
+        drag.ghostEl.style.background = colliding ? 'rgba(239,68,68,0.5)' : 'rgba(74,222,128,0.5)';
+    } else {
+        // Off canvas — free floating, neutral color
+        drag.ghostEl.style.left = (clientX - (part.w * GRID_CELL) / 2) + 'px';
+        drag.ghostEl.style.top = (clientY - (part.h * GRID_CELL) / 2) + 'px';
+        drag.ghostEl.style.borderColor = '#4a90e2';
+        drag.ghostEl.style.background = 'rgba(74, 144, 226, 0.6)';
+    }
 }
 
 function finishDrag(clientX, clientY) {
     const part = PARTS[drag.partType];
+    let placed = false;
+    let collided = false;
+
     // Test if drop is over canvas
     const rect = canvas.getBoundingClientRect();
     if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
-        // Convert client coords to canvas internal coords
         const localX = (clientX - rect.left) * (canvas.width / rect.width);
         const localY = (clientY - rect.top) * (canvas.height / rect.height);
-        // Convert canvas coords to grid coords (centered grid)
         const gridOrigin = getGridOrigin();
         let gridX = Math.round((localX - gridOrigin.x) / GRID_CELL - part.w / 2);
         let gridY = Math.round((localY - gridOrigin.y) / GRID_CELL - part.h / 2);
-        // Clamp into grid
         gridX = Math.max(0, Math.min(GRID_COLS - part.w, gridX));
         gridY = Math.max(0, Math.min(GRID_ROWS - part.h, gridY));
 
-        // Check for collision with existing parts
         if (!partCollides(drag.partType, gridX, gridY)) {
             rocket.parts.push({ id: nextPartId++, type: drag.partType, gridX, gridY });
             saveRocket();
             refresh();
+            placed = true;
+        } else {
+            collided = true;
         }
     }
+
     // Reset drag state
     drag.active = false;
     drag.partType = null;
     drag.ghostEl.classList.remove('active');
+    // Reset ghost colors for next drag
+    drag.ghostEl.style.borderColor = '#4a90e2';
+    drag.ghostEl.style.background = 'rgba(74, 144, 226, 0.6)';
+
+    if (collided) {
+        showPlacementWarning('🚫 Parts would overlap — try another spot!');
+    }
 
     // Restore panel on mobile
     if (drag.panelWasVisible && window.innerWidth <= 500) {
@@ -1937,10 +2034,10 @@ function drawBlueprintGrid() {
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
     if (rocket.parts.length === 0) {
-        ctx.fillText('Drag parts from the panel →', origin.x + gridW / 2, origin.y + gridH / 2);
-        ctx.fillText('to build your rocket!', origin.x + gridW / 2, origin.y + gridH / 2 + 20);
+        ctx.fillText('💡 Tap a part to add it →', origin.x + gridW / 2, origin.y + gridH / 2 - 10);
+        ctx.fillText('Or drag for custom placement!', origin.x + gridW / 2, origin.y + gridH / 2 + 12);
     } else {
-        ctx.fillText('💡 Tap a placed part to remove it', origin.x + gridW / 2, origin.y + gridH + 22);
+        ctx.fillText('💡 Tap parts to add · Tap placed parts to remove', origin.x + gridW / 2, origin.y + gridH + 22);
     }
 }
 
