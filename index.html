@@ -1398,8 +1398,10 @@ function setupBuilderDragDrop() {
             const clientY = e.clientY;
             if (window.planetHitBoxes) {
                 for (const box of window.planetHitBoxes) {
-                    if (clientX >= rect.left + box.x && clientX <= rect.left + box.x + box.w &&
-                        clientY >= rect.top + box.y && clientY <= rect.top + box.y + box.h) {
+                    const boxLeft = rect.left + box.x;
+                    const boxTop = rect.top + box.y;
+                    if (clientX >= boxLeft && clientX <= boxLeft + box.w &&
+                        clientY >= boxTop && clientY <= boxTop + box.h) {
                         if (!box.locked) {
                             openBriefing(box.planet);
                         }
@@ -1768,12 +1770,17 @@ function openBriefing(planet) {
     }
 
     document.getElementById('briefingOverlay').classList.add('show');
-    refresh(planet);
+    refresh();
 }
 
 function closeBriefing() {
     document.getElementById('briefingOverlay').classList.remove('show');
-    game.phase = 'planetSelection';
+    // If we were coming from design, go back to design
+    // If we were coming from planetSelection, go back to planetSelection
+    // The briefing only covers planetSelection if we came from there
+    if (game.phase !== 'design') {
+        game.phase = 'planetSelection';
+    }
 }
 
 function briefingToDesign() {
@@ -2115,8 +2122,22 @@ function drawPlanetSelection() {
         ctx.fillStyle = isLocked ? 'rgba(74, 144, 226, 0.2)' : 'rgba(74, 144, 226, 0.3)';
         ctx.strokeStyle = isLocked ? 'rgba(74, 144, 226, 0.3)' : '#4a90e2';
         ctx.lineWidth = 2;
+
+        // Draw rounded rectangle
+        const bx = x - btnSize / 2;
+        const by = y - btnSize / 2;
+        const radius = 12;
         ctx.beginPath();
-        ctx.roundRect(x - btnSize / 2, y - btnSize / 2, btnSize, btnSize, 12);
+        ctx.moveTo(bx + radius, by);
+        ctx.lineTo(bx + btnSize - radius, by);
+        ctx.arcTo(bx + btnSize, by, bx + btnSize, by + radius, radius);
+        ctx.lineTo(bx + btnSize, by + btnSize - radius);
+        ctx.arcTo(bx + btnSize, by + btnSize, bx + btnSize - radius, by + btnSize, radius);
+        ctx.lineTo(bx + radius, by + btnSize);
+        ctx.arcTo(bx, by + btnSize, bx, by + btnSize - radius, radius);
+        ctx.lineTo(bx, by + radius);
+        ctx.arcTo(bx, by, bx + radius, by, radius);
+        ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
