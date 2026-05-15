@@ -811,8 +811,8 @@
                 <div class="briefing-row"><span class="label">🎯 Goal</span><span class="val" id="briefGoal">Land safely</span></div>
                 <div class="tip" id="briefTip">💡 Tip: Throttle up to slow your fall before touching down!</div>
                 <div class="tip" id="angleTip" style="background: rgba(255, 201, 61, 0.15); border-left-color: #ffc93d;">🎯 Escape Requirement: Point nose up (within ±45°) to escape the atmosphere!</div>
-                <button class="big-btn" onclick="engageMission()">🚀 ENGAGE</button>
-                <button class="secondary-btn" onclick="closeBriefing()" style="width: 100%; margin-top: 8px;">← Back to Builder</button>
+                <button class="big-btn">🛠️ DESIGN ROCKET</button>
+                <button class="secondary-btn" onclick="closeBriefing()" style="width: 100%; margin-top: 8px;">← Back to Planets</button>
             </div>
         </div>
 
@@ -844,43 +844,51 @@
 
         <button id="clearBtn" class="clear-btn">🗑️ Clear Rocket</button>
 
-        <h2>🌍 Choose Mission</h2>
+        <div id="missionSection">
+            <h2>🌍 Choose Mission</h2>
 
-        <button class="mission-card" data-planet="moon" onclick="openBriefing('moon')">
-            <span class="emoji">🌙</span>
-            <span class="info">
-                <span class="name">Moon</span><br>
-                <span class="diff">Easy · No atmosphere</span>
-            </span>
-            <span class="stars" id="starsMoon">☆☆☆</span>
-        </button>
+            <button class="mission-card" data-planet="moon" onclick="openBriefing('moon')">
+                <span class="emoji">🌙</span>
+                <span class="info">
+                    <span class="name">Moon</span><br>
+                    <span class="diff">Easy · No atmosphere</span>
+                </span>
+                <span class="stars" id="starsMoon">☆☆☆</span>
+            </button>
 
-        <button class="mission-card" data-planet="mars" onclick="openBriefing('mars')" id="mMars">
-            <span class="emoji">🔴</span>
-            <span class="info">
-                <span class="name">Mars</span><br>
-                <span class="diff">Medium · Thin air</span>
-            </span>
-            <span class="stars" id="starsMars">☆☆☆</span>
-        </button>
+            <button class="mission-card" data-planet="mars" onclick="openBriefing('mars')" id="mMars">
+                <span class="emoji">🔴</span>
+                <span class="info">
+                    <span class="name">Mars</span><br>
+                    <span class="diff">Medium · Thin air</span>
+                </span>
+                <span class="stars" id="starsMars">☆☆☆</span>
+            </button>
 
-        <button class="mission-card" data-planet="earth" onclick="openBriefing('earth')" id="mEarth">
-            <span class="emoji">🌍</span>
-            <span class="info">
-                <span class="name">Earth Launch</span><br>
-                <span class="diff">Hard · Heavy gravity</span>
-            </span>
-            <span class="stars" id="starsEarth">☆☆☆</span>
-        </button>
+            <button class="mission-card" data-planet="earth" onclick="openBriefing('earth')" id="mEarth">
+                <span class="emoji">🌍</span>
+                <span class="info">
+                    <span class="name">Earth Launch</span><br>
+                    <span class="diff">Hard · Heavy gravity</span>
+                </span>
+                <span class="stars" id="starsEarth">☆☆☆</span>
+            </button>
 
-        <button class="mission-card" data-planet="venus" onclick="openBriefing('venus')" id="mVenus">
-            <span class="emoji">🟡</span>
-            <span class="info">
-                <span class="name">Venus</span><br>
-                <span class="diff">EXTREME · Crushing heat</span>
-            </span>
-            <span class="stars" id="starsVenus">☆☆☆</span>
-        </button>
+            <button class="mission-card" data-planet="venus" onclick="openBriefing('venus')" id="mVenus">
+                <span class="emoji">🟡</span>
+                <span class="info">
+                    <span class="name">Venus</span><br>
+                    <span class="diff">EXTREME · Crushing heat</span>
+                </span>
+                <span class="stars" id="starsVenus">☆☆☆</span>
+            </button>
+        </div>
+
+        <div id="launchSection" style="display: none;">
+            <h2 id="selectedPlanetTitle">🌙 Mission: Moon</h2>
+            <button class="big-btn" onclick="launchFromDesign()" style="width: 100%; margin-bottom: 12px;">🚀 LAUNCH MISSION</button>
+            <button class="secondary-btn" onclick="changeMission()" style="width: 100%;">← Change Mission</button>
+        </div>
 
         <p style="font-size: 11px; color: #8ab4ff; text-align: center; margin-top: 14px;">
             ⭐ Drag parts onto the blueprint grid to build your rocket!
@@ -958,7 +966,7 @@ const GRID_ROWS = 30;     // grid rows in build area
 let canvas, ctx, cw, ch;
 
 const game = {
-    phase: 'design',  // design | briefing | flight | result
+    phase: 'planetSelection',  // planetSelection | design | briefing | flight | result
     planet: 'moon',
     pendingPlanet: 'moon',
     cameraY: 0,
@@ -1382,8 +1390,25 @@ function setupBuilderDragDrop() {
         }
     });
 
-    // Click on canvas to remove a placed part (design phase only)
+    // Click on canvas to handle planetSelection or remove a placed part (design phase only)
     canvas.addEventListener('pointerdown', (e) => {
+        if (game.phase === 'planetSelection') {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX;
+            const clientY = e.clientY;
+            if (window.planetHitBoxes) {
+                for (const box of window.planetHitBoxes) {
+                    if (clientX >= rect.left + box.x && clientX <= rect.left + box.x + box.w &&
+                        clientY >= rect.top + box.y && clientY <= rect.top + box.y + box.h) {
+                        if (!box.locked) {
+                            openBriefing(box.planet);
+                        }
+                        return;
+                    }
+                }
+            }
+            return;
+        }
         if (game.phase !== 'design' || drag.active) return;
         const rect = canvas.getBoundingClientRect();
         const localX = (e.clientX - rect.left) * (canvas.width / rect.width);
@@ -1680,6 +1705,7 @@ function init() {
     refresh();
     updateStarDisplay();
     updateMissionLocks();
+    updatePanelForPhase();
 
     // Setup touch controls for mobile
     setupTouchControls();
@@ -1694,6 +1720,7 @@ function resize() {
 
 // ─── BRIEFING & MISSION ────────────────────────────────────────────────────
 function openBriefing(planet) {
+    const fromDesign = game.phase === 'design';
     game.pendingPlanet = planet;
     const p = PLANETS[planet];
     const emojis = { moon: '🌙', mars: '🔴', venus: '🟡', earth: '🌍' };
@@ -1724,7 +1751,21 @@ function openBriefing(planet) {
         <div style="margin-top: 4px; font-size: 11px; color: #6fa0d0;">First wave in ~5 seconds</div>
     </div>`;
     const briefTipEl = document.getElementById('briefTip');
+    const existingConditions = briefTipEl.parentNode.querySelector('[style*="margin-top: 14px"]');
+    if (existingConditions) existingConditions.remove();
     briefTipEl.parentNode.insertAdjacentHTML('afterend', conditionsHTML);
+
+    // Update button based on where we're coming from
+    const btnEl = document.querySelector('#briefingModal .big-btn');
+    if (btnEl) {
+        if (fromDesign) {
+            btnEl.textContent = '🚀 ENGAGE';
+            btnEl.onclick = () => engageMission();
+        } else {
+            btnEl.textContent = '🛠️ DESIGN ROCKET';
+            btnEl.onclick = () => briefingToDesign();
+        }
+    }
 
     document.getElementById('briefingOverlay').classList.add('show');
     refresh(planet);
@@ -1732,6 +1773,41 @@ function openBriefing(planet) {
 
 function closeBriefing() {
     document.getElementById('briefingOverlay').classList.remove('show');
+    game.phase = 'planetSelection';
+}
+
+function briefingToDesign() {
+    document.getElementById('briefingOverlay').classList.remove('show');
+    game.phase = 'design';
+    updatePanelForPhase();
+    refresh();
+}
+
+function launchFromDesign() {
+    openBriefing(game.pendingPlanet || 'moon');
+}
+
+function changeMission() {
+    game.phase = 'planetSelection';
+    game.pendingPlanet = null;
+    updatePanelForPhase();
+    refresh();
+}
+
+function updatePanelForPhase() {
+    const missionSection = document.getElementById('missionSection');
+    const launchSection = document.getElementById('launchSection');
+    if (game.phase === 'design') {
+        missionSection.style.display = 'none';
+        launchSection.style.display = 'block';
+        const emojis = { moon: '🌙', mars: '🔴', earth: '🌍', venus: '🟡' };
+        const names = { moon: 'Moon', mars: 'Mars', earth: 'Earth', venus: 'Venus' };
+        const planet = game.pendingPlanet || 'moon';
+        document.getElementById('selectedPlanetTitle').textContent = `${emojis[planet]} Mission: ${names[planet]}`;
+    } else {
+        missionSection.style.display = 'block';
+        launchSection.style.display = 'none';
+    }
 }
 
 function engageMission() {
@@ -1920,6 +1996,14 @@ function draw() {
     const alt = game.phase === 'flight' ? Math.max(0, rocket.y) : 0;
     const spaceFactor = Math.min(1, alt / 50000);
 
+    if (game.phase === 'planetSelection') {
+        // Planet selection screen
+        ctx.fillStyle = '#0a1a3d';
+        ctx.fillRect(0, 0, cw, ch);
+        drawPlanetSelection();
+        return;
+    }
+
     if (game.phase === 'design') {
         // Blueprint background
         ctx.fillStyle = '#0a1a3d';
@@ -1990,6 +2074,85 @@ function draw() {
     drawRocket(groundY);
     drawAsteroids(groundY);
     if (game.phase === 'flight') updateGauges();
+}
+
+function drawPlanetSelection() {
+    ctx.fillStyle = '#0a1a3d';
+    ctx.fillRect(0, 0, cw, ch);
+
+    ctx.fillStyle = '#4a90e2';
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('🚀 Choose Your Mission', cw / 2, 80);
+
+    ctx.font = '16px Arial';
+    ctx.fillStyle = '#8ab4ff';
+    ctx.fillText('Select a destination to see mission requirements', cw / 2, 130);
+
+    // Draw planet buttons
+    const planets = ['moon', 'mars', 'earth', 'venus'];
+    const emojis = { moon: '🌙', mars: '🔴', earth: '🌍', venus: '🟡' };
+    const names = { moon: 'Moon', mars: 'Mars', earth: 'Earth', venus: 'Venus' };
+    const diffs = { moon: 'Easy', mars: 'Medium', earth: 'Hard', venus: 'EXTREME' };
+    const locked = { moon: false, mars: game.starsEarned.moon ? (game.starsEarned.moon < 1 ? true : false) : true, earth: game.starsEarned.mars ? (game.starsEarned.mars < 3 ? true : false) : true, venus: game.starsEarned.earth ? (game.starsEarned.earth < 5 ? true : false) : true };
+
+    const cols = cw > 800 ? 4 : 2;
+    const spacing = cw / (cols + 1);
+    const btnSize = Math.min(120, spacing * 0.8);
+    const startY = 220;
+    const rowHeight = 240;
+
+    planets.forEach((p, idx) => {
+        const col = idx % cols;
+        const row = Math.floor(idx / cols);
+        const x = spacing * (col + 1) - btnSize / 2;
+        const y = startY + row * rowHeight;
+
+        // Store for hit testing (in practice use actual click handlers)
+        const isLocked = locked[p];
+
+        // Draw planet button
+        ctx.fillStyle = isLocked ? 'rgba(74, 144, 226, 0.2)' : 'rgba(74, 144, 226, 0.3)';
+        ctx.strokeStyle = isLocked ? 'rgba(74, 144, 226, 0.3)' : '#4a90e2';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x - btnSize / 2, y - btnSize / 2, btnSize, btnSize, 12);
+        ctx.fill();
+        ctx.stroke();
+
+        // Emoji
+        ctx.font = '48px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = isLocked ? 'rgba(138, 180, 255, 0.4)' : '#fff';
+        ctx.fillText(emojis[p], x, y - 30);
+
+        // Planet name
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = isLocked ? 'rgba(138, 180, 255, 0.4)' : '#fff';
+        ctx.fillText(names[p], x, y + 30);
+
+        // Difficulty
+        ctx.font = '12px Arial';
+        ctx.fillStyle = isLocked ? 'rgba(138, 180, 255, 0.4)' : '#8ab4ff';
+        ctx.fillText(diffs[p], x, y + 55);
+
+        // Lock indicator
+        if (isLocked) {
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#ff9800';
+            ctx.fillText('🔒 Locked', x, y + 85);
+        }
+
+        // Store hit box for click detection
+        if (!window.planetHitBoxes) window.planetHitBoxes = [];
+        const boxIndex = window.planetHitBoxes.findIndex(box => box.planet === p);
+        if (boxIndex >= 0) {
+            window.planetHitBoxes[boxIndex] = { planet: p, x: x - btnSize / 2, y: y - btnSize / 2, w: btnSize, h: btnSize, locked: isLocked };
+        } else {
+            window.planetHitBoxes.push({ planet: p, x: x - btnSize / 2, y: y - btnSize / 2, w: btnSize, h: btnSize, locked: isLocked });
+        }
+    });
 }
 
 function drawBlueprintGrid() {
@@ -2781,6 +2944,7 @@ function resetToDesign() {
     document.getElementById('controlsHint').classList.remove('active');
     document.getElementById('touchControls').classList.remove('active');
     document.getElementById('resultOverlay').classList.remove('show');
+    updatePanelForPhase();
 }
 
 function updateStarDisplay() {
