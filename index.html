@@ -2129,88 +2129,446 @@ function drawRocket(groundY) {
 }
 
 function drawPart(p, x, y, w, h) {
-    const def = PARTS[p.type];
+    switch (p.type) {
+        case 'cockpit':     drawCockpit(x, y, w, h); break;
+        case 'capsule':     drawCapsule(x, y, w, h); break;
+        case 'tankSmall':
+        case 'tankMedium':
+        case 'tankLarge':
+        case 'tankXL':      drawTank(x, y, w, h, p.type); break;
+        case 'engineIon':   drawIonEngine(x, y, w, h); break;
+        case 'engineChem':  drawChemEngine(x, y, w, h); break;
+        case 'engineSolid': drawSolidBooster(x, y, w, h); break;
+        case 'noseCone':    drawNoseCone(x, y, w, h); break;
+        case 'fins':        drawFins(x, y, w, h); break;
+        case 'parachute':   drawParachute(x, y, w, h); break;
+        case 'landingLegs': drawLandingLegs(x, y, w, h); break;
+        case 'heatShield':  drawHeatShield(x, y, w, h); break;
+        case 'separator':   drawSeparator(x, y, w, h); break;
+        case 'fairing':     drawFairing(x, y, w, h); break;
+        default:            drawTank(x, y, w, h, 'tankMedium');
+    }
+}
 
-    // Special part shapes
-    if (p.type === 'noseCone') {
-        // Triangle pointing up
-        ctx.fillStyle = def.color;
+// Reusable cylindrical shading — bright left edge, dark right edge.
+function shadeCylinder(x, y, w, h) {
+    ctx.fillStyle = 'rgba(0,0,0,0.20)';
+    ctx.fillRect(x + w * 0.65, y, w * 0.35, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(x, y, w * 0.18, h);
+}
+
+function drawCockpit(x, y, w, h) {
+    const coneH = h * 0.45;
+    const bodyY = y + coneH;
+    const bodyH = h - coneH;
+    // Dome (cone) top
+    ctx.fillStyle = '#e8e8e8';
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, y);
+    ctx.quadraticCurveTo(x, y + coneH * 0.5, x, y + coneH);
+    ctx.lineTo(x + w, y + coneH);
+    ctx.quadraticCurveTo(x + w, y + coneH * 0.5, x + w / 2, y);
+    ctx.closePath();
+    ctx.fill();
+    // Cylindrical body
+    ctx.fillStyle = '#e0e0e0';
+    ctx.fillRect(x, bodyY, w, bodyH);
+    shadeCylinder(x, bodyY, w, bodyH);
+    // Window
+    const winR = Math.min(w, bodyH) * 0.22;
+    ctx.fillStyle = '#1976d2';
+    ctx.beginPath();
+    ctx.arc(x + w / 2, bodyY + bodyH * 0.45, winR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath();
+    ctx.arc(x + w / 2 - winR * 0.3, bodyY + bodyH * 0.45 - winR * 0.3, winR * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x + w / 2, bodyY + bodyH * 0.45, winR, 0, Math.PI * 2);
+    ctx.stroke();
+    // Bottom seam
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h - 1);
+    ctx.lineTo(x + w, y + h - 1);
+    ctx.stroke();
+}
+
+function drawCapsule(x, y, w, h) {
+    const coneH = h * 0.35;
+    const bodyY = y + coneH;
+    const bodyH = h - coneH;
+    // Trapezoidal cone top (wider Soyuz-style)
+    ctx.fillStyle = '#bcbcbc';
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.3, y);
+    ctx.lineTo(x + w * 0.7, y);
+    ctx.lineTo(x + w, y + coneH);
+    ctx.lineTo(x, y + coneH);
+    ctx.closePath();
+    ctx.fill();
+    // Body
+    ctx.fillStyle = '#b8b8b8';
+    ctx.fillRect(x, bodyY, w, bodyH);
+    shadeCylinder(x, bodyY, w, bodyH);
+    // Two windows
+    const winR = Math.min(w, bodyH) * 0.14;
+    [x + w * 0.32, x + w * 0.68].forEach(wx => {
+        ctx.fillStyle = '#1976d2';
         ctx.beginPath();
-        ctx.moveTo(x + w / 2, y);
-        ctx.lineTo(x, y + h);
-        ctx.lineTo(x + w, y + h);
-        ctx.closePath();
+        ctx.arc(wx, bodyY + bodyH * 0.4, winR, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 1.2;
         ctx.stroke();
-        return;
-    }
-
-    if (p.type === 'fins') {
-        // Two triangles at bottom corners
-        ctx.fillStyle = def.color;
-        // Left fin
-        ctx.beginPath();
-        ctx.moveTo(x, y + h);
-        ctx.lineTo(x, y);
-        ctx.lineTo(x + w * 0.3, y + h * 0.5);
-        ctx.closePath();
-        ctx.fill();
-        // Right fin
-        ctx.beginPath();
-        ctx.moveTo(x + w, y + h);
-        ctx.lineTo(x + w, y);
-        ctx.lineTo(x + w * 0.7, y + h * 0.5);
-        ctx.closePath();
-        ctx.fill();
-        // Middle bar
-        ctx.fillRect(x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.4);
-        return;
-    }
-
-    if (p.type === 'landingLegs') {
-        ctx.strokeStyle = def.color;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(x + w * 0.2, y);
-        ctx.lineTo(x, y + h);
-        ctx.moveTo(x + w * 0.8, y);
-        ctx.lineTo(x + w, y + h);
-        ctx.stroke();
-        ctx.fillStyle = def.color;
-        ctx.fillRect(x - 2, y + h - 2, w * 0.2, 3);
-        ctx.fillRect(x + w * 0.8, y + h - 2, w * 0.2 + 2, 3);
-        return;
-    }
-
-    if (p.type === 'parachute') {
-        ctx.fillStyle = def.color;
-        ctx.beginPath();
-        ctx.arc(x + w / 2, y + h, w / 2, Math.PI, 0);
-        ctx.fill();
-        return;
-    }
-
-    // Default: filled rectangle with icon
-    ctx.fillStyle = def.color;
-    ctx.fillRect(x, y, w, h);
+    });
+    // Hatch line
     ctx.strokeStyle = 'rgba(0,0,0,0.3)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(x, y, w, h);
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.5, bodyY + bodyH * 0.7);
+    ctx.lineTo(x + w * 0.5, y + h);
+    ctx.stroke();
+}
 
-    // Engine: add a darker bottom strip
-    if (def.engineType) {
-        ctx.fillStyle = 'rgba(0,0,0,0.4)';
-        ctx.fillRect(x, y + h * 0.7, w, h * 0.3);
+function drawTank(x, y, w, h, type) {
+    // Body
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(x, y, w, h);
+    shadeCylinder(x, y, w, h);
+    // Two equator/girth bands (black/dark gray)
+    ctx.fillStyle = 'rgba(40,40,40,0.7)';
+    ctx.fillRect(x, y + h * 0.15, w, 2);
+    ctx.fillRect(x, y + h * 0.85 - 2, w, 2);
+    // Size-coded color stripe near top
+    const stripeColors = {
+        tankSmall:  '#22c55e',  // green
+        tankMedium: '#3b82f6',  // blue
+        tankLarge:  '#f97316',  // orange
+        tankXL:     '#ef4444',  // red
+    };
+    ctx.fillStyle = stripeColors[type] || '#888';
+    ctx.fillRect(x + w * 0.15, y + h * 0.25, w * 0.7, h * 0.06);
+    // Vertical highlight pipe lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 1;
+    [0.35, 0.65].forEach(f => {
+        ctx.beginPath();
+        ctx.moveTo(x + w * f, y + h * 0.2);
+        ctx.lineTo(x + w * f, y + h * 0.8);
+        ctx.stroke();
+    });
+}
+
+function drawIonEngine(x, y, w, h) {
+    // Top mount (cylindrical)
+    const mountH = h * 0.45;
+    ctx.fillStyle = '#888';
+    ctx.fillRect(x + w * 0.1, y, w * 0.8, mountH);
+    shadeCylinder(x + w * 0.1, y, w * 0.8, mountH);
+    // 3 small conical nozzles at bottom
+    const nozzleY = y + mountH;
+    const nozzleH = h - mountH;
+    [0.2, 0.5, 0.8].forEach(cx => {
+        const nx = x + w * cx;
+        // Nozzle housing
+        ctx.fillStyle = '#444';
+        ctx.beginPath();
+        ctx.moveTo(nx - w * 0.1, nozzleY);
+        ctx.lineTo(nx - w * 0.13, y + h);
+        ctx.lineTo(nx + w * 0.13, y + h);
+        ctx.lineTo(nx + w * 0.1, nozzleY);
+        ctx.closePath();
+        ctx.fill();
+        // Blue glow at tip
+        const glow = ctx.createRadialGradient(nx, y + h, 1, nx, y + h, w * 0.15);
+        glow.addColorStop(0, 'rgba(100, 200, 255, 0.9)');
+        glow.addColorStop(1, 'rgba(100, 200, 255, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(nx, y + h - 1, w * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+    });
+}
+
+function drawChemEngine(x, y, w, h) {
+    // Cylindrical mount (top portion)
+    const mountH = h * 0.35;
+    ctx.fillStyle = '#a0a0a0';
+    ctx.fillRect(x + w * 0.18, y, w * 0.64, mountH);
+    shadeCylinder(x + w * 0.18, y, w * 0.64, mountH);
+    // Copper rim between mount and nozzle
+    ctx.fillStyle = '#b87333';
+    ctx.fillRect(x + w * 0.15, y + mountH, w * 0.7, h * 0.05);
+    // Bell nozzle (trapezoid that flares out)
+    const bellTop = y + mountH + h * 0.05;
+    ctx.fillStyle = '#2c2c2c';
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.2, bellTop);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x + w * 0.8, bellTop);
+    ctx.closePath();
+    ctx.fill();
+    // Bell shading (left highlight, right shadow)
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.2, bellTop);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x + w * 0.15, y + h);
+    ctx.lineTo(x + w * 0.28, bellTop);
+    ctx.closePath();
+    ctx.fill();
+    // Inner nozzle lip (orange-red ring at bottom)
+    ctx.strokeStyle = '#ff6b35';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    ctx.lineTo(x + w, y + h);
+    ctx.stroke();
+}
+
+function drawSolidBooster(x, y, w, h) {
+    // Tall orange cylindrical body
+    const bodyH = h * 0.78;
+    ctx.fillStyle = '#ff8c42';
+    ctx.fillRect(x, y, w, bodyH);
+    shadeCylinder(x, y, w, bodyH);
+    // White stripe near top
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x, y + bodyH * 0.1, w, bodyH * 0.08);
+    // Black band lower middle
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(x, y + bodyH * 0.5, w, bodyH * 0.06);
+    // Nozzle bell at bottom (wider)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.15, y + bodyH);
+    ctx.lineTo(x - w * 0.05, y + h);
+    ctx.lineTo(x + w * 1.05, y + h);
+    ctx.lineTo(x + w * 0.85, y + bodyH);
+    ctx.closePath();
+    ctx.fill();
+    // Inner nozzle ring (red-orange glow)
+    ctx.strokeStyle = '#ff4500';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.05, y + h);
+    ctx.lineTo(x + w * 1.05, y + h);
+    ctx.stroke();
+}
+
+function drawNoseCone(x, y, w, h) {
+    // Sharp triangle, white body, red tip
+    ctx.fillStyle = '#e8e8e8';
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, y);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x + w, y + h);
+    ctx.closePath();
+    ctx.fill();
+    // Left highlight stripe
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, y);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x + w * 0.2, y + h);
+    ctx.lineTo(x + w * 0.45, y + h * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    // Right shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, y);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x + w * 0.7, y + h);
+    ctx.lineTo(x + w * 0.55, y + h * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    // Red tip
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, y);
+    ctx.lineTo(x + w * 0.4, y + h * 0.25);
+    ctx.lineTo(x + w * 0.6, y + h * 0.25);
+    ctx.closePath();
+    ctx.fill();
+    // Horizontal seam near base
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.15, y + h * 0.7);
+    ctx.lineTo(x + w * 0.85, y + h * 0.7);
+    ctx.stroke();
+}
+
+function drawFins(x, y, w, h) {
+    // Twin triangle fins on outer edges + middle body strip
+    ctx.fillStyle = '#9a9a9a';
+    // Left fin
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x + w * 0.32, y + h * 0.4);
+    ctx.lineTo(x + w * 0.32, y + h);
+    ctx.closePath();
+    ctx.fill();
+    // Right fin
+    ctx.beginPath();
+    ctx.moveTo(x + w, y + h);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w * 0.68, y + h * 0.4);
+    ctx.lineTo(x + w * 0.68, y + h);
+    ctx.closePath();
+    ctx.fill();
+    // Middle body strip (connects to tank above)
+    ctx.fillStyle = '#e0e0e0';
+    ctx.fillRect(x + w * 0.32, y, w * 0.36, h);
+    shadeCylinder(x + w * 0.32, y, w * 0.36, h);
+    // Panel lines on fins
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.05, y + h * 0.5);
+    ctx.lineTo(x + w * 0.28, y + h * 0.7);
+    ctx.moveTo(x + w * 0.95, y + h * 0.5);
+    ctx.lineTo(x + w * 0.72, y + h * 0.7);
+    ctx.stroke();
+}
+
+function drawParachute(x, y, w, h) {
+    // Folded chute look — half dome with segments
+    ctx.fillStyle = '#ff9800';
+    ctx.beginPath();
+    ctx.arc(x + w / 2, y + h, w / 2, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+    // Segment lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    [0.25, 0.5, 0.75].forEach(f => {
+        const ang = Math.PI + Math.PI * f;
+        ctx.beginPath();
+        ctx.moveTo(x + w / 2, y + h);
+        ctx.lineTo(x + w / 2 + Math.cos(ang) * w / 2, y + h + Math.sin(ang) * w / 2);
+        ctx.stroke();
+    });
+    // Highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.beginPath();
+    ctx.arc(x + w / 2 - w * 0.15, y + h - w * 0.1, w * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawLandingLegs(x, y, w, h) {
+    // Twin angled legs with foot pads + center body strip
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.32, y);
+    ctx.lineTo(x + w * 0.08, y + h);
+    ctx.moveTo(x + w * 0.68, y);
+    ctx.lineTo(x + w * 0.92, y + h);
+    ctx.stroke();
+    // Foot pads (triangles)
+    ctx.fillStyle = '#444';
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    ctx.lineTo(x + w * 0.16, y + h - 3);
+    ctx.lineTo(x + w * 0.16, y + h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.84, y + h);
+    ctx.lineTo(x + w, y + h - 3);
+    ctx.lineTo(x + w, y + h);
+    ctx.closePath();
+    ctx.fill();
+    // Middle body strip
+    ctx.fillStyle = '#e0e0e0';
+    ctx.fillRect(x + w * 0.32, y, w * 0.36, h);
+    shadeCylinder(x + w * 0.32, y, w * 0.36, h);
+}
+
+function drawHeatShield(x, y, w, h) {
+    // Curved dish-shaped shield, reddish-brown ablative
+    ctx.fillStyle = '#5a2810';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.quadraticCurveTo(x + w * 0.95, y + h * 1.2, x + w / 2, y + h);
+    ctx.quadraticCurveTo(x + w * 0.05, y + h * 1.2, x, y);
+    ctx.closePath();
+    ctx.fill();
+    // Inner stripe
+    ctx.fillStyle = '#7a3818';
+    ctx.fillRect(x + w * 0.05, y + h * 0.15, w * 0.9, h * 0.2);
+    // Ablative horizontal ridges
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 1;
+    [0.45, 0.65].forEach(f => {
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.1, y + h * f);
+        ctx.lineTo(x + w * 0.9, y + h * f);
+        ctx.stroke();
+    });
+}
+
+function drawSeparator(x, y, w, h) {
+    // Yellow/black hazard-striped thin disc
+    const stripeW = w / 6;
+    for (let i = 0; i < 6; i++) {
+        ctx.fillStyle = (i % 2 === 0) ? '#facc15' : '#1a1a1a';
+        ctx.fillRect(x + i * stripeW, y, stripeW, h);
     }
+    // Top/bottom edge lines
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 0.5);
+    ctx.lineTo(x + w, y + 0.5);
+    ctx.moveTo(x, y + h - 0.5);
+    ctx.lineTo(x + w, y + h - 0.5);
+    ctx.stroke();
+}
 
-    // Icon centered
-    ctx.fillStyle = '#000';
-    ctx.font = Math.min(w, h) * 0.6 + 'px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(def.icon, x + w / 2, y + h / 2);
+function drawFairing(x, y, w, h) {
+    // V-shaped two-panel protective shell (inverted nose-cone)
+    ctx.fillStyle = '#9a9a9a';
+    // Left panel
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w * 0.5, y);
+    ctx.lineTo(x + w * 0.5, y + h);
+    ctx.lineTo(x + w * 0.15, y + h);
+    ctx.closePath();
+    ctx.fill();
+    // Right panel
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.5, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w * 0.85, y + h);
+    ctx.lineTo(x + w * 0.5, y + h);
+    ctx.closePath();
+    ctx.fill();
+    // Left highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillRect(x + w * 0.05, y, w * 0.1, h);
+    // Right shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(x + w * 0.85, y, w * 0.1, h);
+    // Vertical seam line in middle
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.5, y);
+    ctx.lineTo(x + w * 0.5, y + h);
+    ctx.stroke();
 }
 
 // ─── GAUGES (canvas-drawn) ─────────────────────────────────────────────────
