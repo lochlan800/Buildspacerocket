@@ -2101,7 +2101,13 @@ function drawPlanetSelection() {
     const emojis = { moon: '🌙', mars: '🔴', earth: '🌍', venus: '🟡' };
     const names = { moon: 'Moon', mars: 'Mars', earth: 'Earth', venus: 'Venus' };
     const diffs = { moon: 'Easy', mars: 'Medium', earth: 'Hard', venus: 'EXTREME' };
-    const locked = { moon: false, mars: game.starsEarned.moon ? (game.starsEarned.moon < 1 ? true : false) : true, earth: game.starsEarned.mars ? (game.starsEarned.mars < 3 ? true : false) : true, venus: game.starsEarned.earth ? (game.starsEarned.earth < 5 ? true : false) : true };
+    const totalStars = Object.values(game.starsEarned).reduce((a, b) => a + b, 0);
+    const locked = {
+        moon: false,
+        mars: (game.starsEarned.moon || 0) < 1,
+        earth: totalStars < 3,
+        venus: totalStars < 5
+    };
 
     const cols = cw > 800 ? 4 : 2;
     const spacing = cw / (cols + 1);
