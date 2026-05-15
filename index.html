@@ -1003,9 +1003,11 @@ function drawAsteroids(groundY) {
 }
 
 function drawRadar() {
-    const radarX = 125;
-    const radarY = 425;
-    const radarSize = 100;
+    // On mobile (narrow screens), move radar to bottom-right to avoid overlapping rocket
+    const isMobile = cw < 500;
+    const radarX = isMobile ? cw - 130 : 125;
+    const radarY = isMobile ? ch - 130 : 425;
+    const radarSize = isMobile ? 80 : 100;
 
     ctx.save();
 
