@@ -917,13 +917,13 @@ const MATERIALS = {
 const PARTS = {
     // COMMAND
     cockpit:     { cat: 'Command',    name: 'Cockpit',       w: 2, h: 2, mass: 80,  color: '#ddd',    icon: '👨‍🚀' },
-    capsule:     { cat: 'Command',    name: 'Crew Capsule',  w: 3, h: 2, mass: 150, color: '#bbb',    icon: '🛸' },
+    capsule:     { cat: 'Command',    name: 'Crew Capsule',  w: 2, h: 3, mass: 150, color: '#bbb',    icon: '🛸' },
 
     // FUEL TANKS
     tankSmall:   { cat: 'Fuel',       name: 'Small Tank',    w: 2, h: 2, mass: 50,  fuel: 200,  color: '#f5f5f5', icon: '⛽' },
     tankMedium:  { cat: 'Fuel',       name: 'Medium Tank',   w: 2, h: 3, mass: 100, fuel: 600,  color: '#f5f5f5', icon: '⛽' },
     tankLarge:   { cat: 'Fuel',       name: 'Large Tank',    w: 2, h: 4, mass: 200, fuel: 1500, color: '#f5f5f5', icon: '🛢️' },
-    tankXL:      { cat: 'Fuel',       name: 'XL Tank',       w: 3, h: 5, mass: 400, fuel: 3000, color: '#f5f5f5', icon: '🛢️' },
+    tankXL:      { cat: 'Fuel',       name: 'XL Tank',       w: 2, h: 6, mass: 400, fuel: 3000, color: '#f5f5f5', icon: '🛢️' },
 
     // ENGINES
     engineIon:   { cat: 'Engine',     name: 'Ion Engine',    w: 2, h: 1, mass: 30,  engineType: 'ion',         color: '#42a5f5', icon: '🔵' },
@@ -939,11 +939,11 @@ const PARTS = {
     landingLegs: { cat: 'Landing',    name: 'Landing Legs',  w: 4, h: 1, mass: 50,  hasLandingLegs: true, color: '#666',    icon: '🦵' },
 
     // HEAT
-    heatShield:  { cat: 'Heat',       name: 'Heat Shield',   w: 3, h: 1, mass: 100, hasHeatShield: true,  color: '#3d3d3d', icon: '🛡️' },
+    heatShield:  { cat: 'Heat',       name: 'Heat Shield',   w: 2, h: 1, mass: 100, hasHeatShield: true,  color: '#3d3d3d', icon: '🛡️' },
 
     // STRUCTURAL
     separator:   { cat: 'Structural', name: 'Separator',     w: 2, h: 1, mass: 20,  color: '#444',    icon: '➖' },
-    fairing:     { cat: 'Structural', name: 'Fairing',       w: 3, h: 2, mass: 60,  color: '#888',    icon: '🔻' },
+    fairing:     { cat: 'Structural', name: 'Fairing',       w: 2, h: 3, mass: 60,  color: '#888',    icon: '🔻' },
 };
 
 // Categories in display order
@@ -2163,7 +2163,7 @@ function drawCockpit(x, y, w, h) {
     const bodyY = y + coneH;
     const bodyH = h - coneH;
     // Dome (cone) top
-    ctx.fillStyle = '#e8e8e8';
+    ctx.fillStyle = '#ececec';
     ctx.beginPath();
     ctx.moveTo(x + w / 2, y);
     ctx.quadraticCurveTo(x, y + coneH * 0.5, x, y + coneH);
@@ -2172,7 +2172,7 @@ function drawCockpit(x, y, w, h) {
     ctx.closePath();
     ctx.fill();
     // Cylindrical body
-    ctx.fillStyle = '#e0e0e0';
+    ctx.fillStyle = '#ececec';
     ctx.fillRect(x, bodyY, w, bodyH);
     shadeCylinder(x, bodyY, w, bodyH);
     // Window
@@ -2204,7 +2204,7 @@ function drawCapsule(x, y, w, h) {
     const bodyY = y + coneH;
     const bodyH = h - coneH;
     // Trapezoidal cone top (wider Soyuz-style)
-    ctx.fillStyle = '#bcbcbc';
+    ctx.fillStyle = '#d0d0d0';
     ctx.beginPath();
     ctx.moveTo(x + w * 0.3, y);
     ctx.lineTo(x + w * 0.7, y);
@@ -2213,7 +2213,7 @@ function drawCapsule(x, y, w, h) {
     ctx.closePath();
     ctx.fill();
     // Body
-    ctx.fillStyle = '#b8b8b8';
+    ctx.fillStyle = '#ececec';
     ctx.fillRect(x, bodyY, w, bodyH);
     shadeCylinder(x, bodyY, w, bodyH);
     // Two windows
@@ -2238,7 +2238,7 @@ function drawCapsule(x, y, w, h) {
 
 function drawTank(x, y, w, h, type) {
     // Body
-    ctx.fillStyle = '#f0f0f0';
+    ctx.fillStyle = '#ececec';
     ctx.fillRect(x, y, w, h);
     shadeCylinder(x, y, w, h);
     // Two equator/girth bands (black/dark gray)
@@ -2266,11 +2266,11 @@ function drawTank(x, y, w, h, type) {
 }
 
 function drawIonEngine(x, y, w, h) {
-    // Top mount (cylindrical)
+    // Top mount (full-width so it matches the tank above)
     const mountH = h * 0.45;
-    ctx.fillStyle = '#888';
-    ctx.fillRect(x + w * 0.1, y, w * 0.8, mountH);
-    shadeCylinder(x + w * 0.1, y, w * 0.8, mountH);
+    ctx.fillStyle = '#ececec';
+    ctx.fillRect(x, y, w, mountH);
+    shadeCylinder(x, y, w, mountH);
     // 3 small conical nozzles at bottom
     const nozzleY = y + mountH;
     const nozzleH = h - mountH;
@@ -2297,14 +2297,14 @@ function drawIonEngine(x, y, w, h) {
 }
 
 function drawChemEngine(x, y, w, h) {
-    // Cylindrical mount (top portion)
+    // Cylindrical mount (top portion) — full-width so it matches the tank above
     const mountH = h * 0.35;
-    ctx.fillStyle = '#a0a0a0';
-    ctx.fillRect(x + w * 0.18, y, w * 0.64, mountH);
-    shadeCylinder(x + w * 0.18, y, w * 0.64, mountH);
-    // Copper rim between mount and nozzle
+    ctx.fillStyle = '#ececec';
+    ctx.fillRect(x, y, w, mountH);
+    shadeCylinder(x, y, w, mountH);
+    // Copper rim between mount and nozzle (full width to match body above)
     ctx.fillStyle = '#b87333';
-    ctx.fillRect(x + w * 0.15, y + mountH, w * 0.7, h * 0.05);
+    ctx.fillRect(x, y + mountH, w, h * 0.05);
     // Bell nozzle (trapezoid that flares out)
     const bellTop = y + mountH + h * 0.05;
     ctx.fillStyle = '#2c2c2c';
@@ -2408,36 +2408,36 @@ function drawNoseCone(x, y, w, h) {
 }
 
 function drawFins(x, y, w, h) {
-    // Twin triangle fins on outer edges + middle body strip
+    // 4-wide part wrapping 2-wide body. Center strip = cells 1–2 (25%–75% of width).
     ctx.fillStyle = '#9a9a9a';
-    // Left fin
+    // Left fin (cells 0 → 1)
     ctx.beginPath();
     ctx.moveTo(x, y + h);
     ctx.lineTo(x, y);
-    ctx.lineTo(x + w * 0.32, y + h * 0.4);
-    ctx.lineTo(x + w * 0.32, y + h);
+    ctx.lineTo(x + w * 0.25, y + h * 0.4);
+    ctx.lineTo(x + w * 0.25, y + h);
     ctx.closePath();
     ctx.fill();
-    // Right fin
+    // Right fin (cells 3 → 2)
     ctx.beginPath();
     ctx.moveTo(x + w, y + h);
     ctx.lineTo(x + w, y);
-    ctx.lineTo(x + w * 0.68, y + h * 0.4);
-    ctx.lineTo(x + w * 0.68, y + h);
+    ctx.lineTo(x + w * 0.75, y + h * 0.4);
+    ctx.lineTo(x + w * 0.75, y + h);
     ctx.closePath();
     ctx.fill();
-    // Middle body strip (connects to tank above)
-    ctx.fillStyle = '#e0e0e0';
-    ctx.fillRect(x + w * 0.32, y, w * 0.36, h);
-    shadeCylinder(x + w * 0.32, y, w * 0.36, h);
+    // Middle body strip aligns exactly with the 2-wide rocket body
+    ctx.fillStyle = '#ececec';
+    ctx.fillRect(x + w * 0.25, y, w * 0.5, h);
+    shadeCylinder(x + w * 0.25, y, w * 0.5, h);
     // Panel lines on fins
     ctx.strokeStyle = 'rgba(0,0,0,0.3)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(x + w * 0.05, y + h * 0.5);
-    ctx.lineTo(x + w * 0.28, y + h * 0.7);
+    ctx.lineTo(x + w * 0.22, y + h * 0.75);
     ctx.moveTo(x + w * 0.95, y + h * 0.5);
-    ctx.lineTo(x + w * 0.72, y + h * 0.7);
+    ctx.lineTo(x + w * 0.78, y + h * 0.75);
     ctx.stroke();
 }
 
@@ -2466,33 +2466,33 @@ function drawParachute(x, y, w, h) {
 }
 
 function drawLandingLegs(x, y, w, h) {
-    // Twin angled legs with foot pads + center body strip
+    // 4-wide part wrapping 2-wide body. Legs extend from body edges to outer cells.
     ctx.strokeStyle = '#666';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(x + w * 0.32, y);
-    ctx.lineTo(x + w * 0.08, y + h);
-    ctx.moveTo(x + w * 0.68, y);
-    ctx.lineTo(x + w * 0.92, y + h);
+    ctx.moveTo(x + w * 0.25, y);
+    ctx.lineTo(x + w * 0.05, y + h);
+    ctx.moveTo(x + w * 0.75, y);
+    ctx.lineTo(x + w * 0.95, y + h);
     ctx.stroke();
     // Foot pads (triangles)
     ctx.fillStyle = '#444';
     ctx.beginPath();
     ctx.moveTo(x, y + h);
-    ctx.lineTo(x + w * 0.16, y + h - 3);
-    ctx.lineTo(x + w * 0.16, y + h);
+    ctx.lineTo(x + w * 0.12, y + h - 3);
+    ctx.lineTo(x + w * 0.12, y + h);
     ctx.closePath();
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(x + w * 0.84, y + h);
+    ctx.moveTo(x + w * 0.88, y + h);
     ctx.lineTo(x + w, y + h - 3);
     ctx.lineTo(x + w, y + h);
     ctx.closePath();
     ctx.fill();
-    // Middle body strip
-    ctx.fillStyle = '#e0e0e0';
-    ctx.fillRect(x + w * 0.32, y, w * 0.36, h);
-    shadeCylinder(x + w * 0.32, y, w * 0.36, h);
+    // Middle body strip aligns exactly with the 2-wide rocket body
+    ctx.fillStyle = '#ececec';
+    ctx.fillRect(x + w * 0.25, y, w * 0.5, h);
+    shadeCylinder(x + w * 0.25, y, w * 0.5, h);
 }
 
 function drawHeatShield(x, y, w, h) {
