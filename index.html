@@ -388,8 +388,44 @@
             padding: 28px;
             max-width: 460px;
             width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: 0 20px 60px rgba(74, 144, 226, 0.4);
         }
+
+        .briefing-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid #4a90e2;
+            padding: 10px 14px;
+            border-radius: 4px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #c0d5f0;
+        }
+        .briefing-section h3 {
+            color: #8ab4ff;
+            font-size: 12px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .briefing-section strong { color: #fff; }
+        .briefing-section ol,
+        .briefing-section ul { padding-left: 18px; margin: 4px 0; }
+        .briefing-section li { margin: 3px 0; line-height: 1.4; }
+        .briefing-section .stars-line {
+            margin-top: 8px;
+            color: #ffd93d;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .briefing-section .stats-line {
+            margin-top: 6px;
+            color: #8ab4ff;
+            font-size: 12px;
+        }
+        .req-ok   { color: #4ade80; }
+        .req-miss { color: #ef4444; }
 
         .modal h2 { font-size: 26px; margin-bottom: 12px; text-align: center; }
         .modal .planet-info { display: flex; align-items: center; justify-content: center; margin: 14px 0; }
@@ -811,6 +847,9 @@
                 <div class="briefing-row"><span class="label">🎯 Goal</span><span class="val" id="briefGoal">Land safely</span></div>
                 <div class="tip" id="briefTip">💡 Tip: Throttle up to slow your fall before touching down!</div>
                 <div class="tip" id="angleTip" style="background: rgba(255, 201, 61, 0.15); border-left-color: #ffc93d;">🎯 Escape Requirement: Point nose up (within ±45°) to escape the atmosphere!</div>
+                <div id="briefRequiredParts" class="briefing-section"></div>
+                <div id="briefFlightPlan" class="briefing-section"></div>
+                <div id="briefDangers" class="briefing-section"></div>
                 <button class="big-btn">🛠️ DESIGN ROCKET</button>
                 <button class="secondary-btn" onclick="closeBriefing()" style="width: 100%; margin-top: 8px;">← Back to Planets</button>
             </div>
@@ -906,6 +945,86 @@ const PLANETS = {
     mars:  { g: 3.71, name: 'Mars',  atm: 0.02,  scaleH: 11.1, color: '#c1440e', accent: '#a03000', maxTemp: 900,  targetAlt: 15000, tagline: "The Red Planet — thin atmosphere", tip: "💡 Thin atmosphere helps slow you down a bit. Heat shield optional." },
     venus: { g: 8.87, name: 'Venus', atm: 67,    scaleH: 15.9, color: '#f0c040', accent: '#d0a020', maxTemp: 1500, targetAlt: 25000, tagline: "EXTREME — crushing heat & pressure", tip: "🔥 You NEED a heat shield! Atmosphere is 90× thicker than Earth's." },
     earth: { g: 9.81, name: 'Earth', atm: 1.225, scaleH: 8.5,  color: '#4080d0', accent: '#306090', maxTemp: 1200, targetAlt: 5000, tagline: "Home & Mission Control — where rockets are built", tip: "🚀 Return home! Strong gravity needs fuel. Heat shield helps re-entry. Land safely to get back to the builder!" },
+};
+
+const MISSION_GUIDE = {
+    moon: {
+        type: 'land',
+        requiredParts:    ['🧑‍🚀 Cockpit (or Capsule)', '⛽ Fuel Tank', '🔥 Engine', '🦵 Landing Legs'],
+        recommendedParts: ['🪶 Fins (stability)', '🪂 Parachute (backup)'],
+        minDV:    1800,
+        minTWR:   1.3,
+        flightPlan: [
+            'Throttle UP (↑) gently — Moon gravity is weak, so you lift off fast.',
+            'Coast upward; cut throttle once you reach 2,000 m to save fuel.',
+            'On descent, throttle UP again to slow your fall before touchdown.',
+            'Land at under 5 m/s with landing legs to survive.',
+        ],
+        dangers: [
+            'No atmosphere → no drag → easy to overshoot. Save fuel for slowing down.',
+            'No heat → heat shield NOT required.',
+            'Light asteroid presence — usually safe to ignore.',
+        ],
+        stars: '★ touchdown · ★★ <3 m/s · ★★★ <2 m/s and >30% fuel',
+    },
+    mars: {
+        type: 'escape',
+        requiredParts:    ['🧑‍🚀 Command Module', '⛽ Medium+ Fuel Tank', '🔥 Engine', '🔺 Nose Cone'],
+        recommendedParts: ['🛡️ Heat Shield (optional)', '🪶 Fins'],
+        minDV:    4500,
+        minTWR:   1.5,
+        flightPlan: [
+            'Throttle UP to 100% at launch — Mars gravity is 2× the Moon.',
+            'Keep nose vertical (±45°) — thin atmosphere still adds drag.',
+            'Steer (← →) to dodge asteroid waves once you pass 5,000 m.',
+            'Reach 15,000 m with fuel remaining for higher star rating.',
+        ],
+        dangers: [
+            'Asteroid waves start around 5 sec in — be ready to steer.',
+            'Heat builds slowly; under 900 K is fine without a shield.',
+            'Wrong angle = drag wall that wastes your fuel.',
+        ],
+        stars: '★ reach 15 km · ★★ >20% fuel left · ★★★ >50% fuel left',
+    },
+    earth: {
+        type: 'escape',
+        requiredParts:    ['🧑‍🚀 Command Module', '⛽ Large Fuel Tank', '🔥 Chemical Engine', '🔺 Nose Cone', '🛡️ Heat Shield'],
+        recommendedParts: ['🪶 Fins', '🦵 Landing Legs (for return)'],
+        minDV:    9400,
+        minTWR:   1.4,
+        flightPlan: [
+            'Full throttle at launch — Earth gravity needs major thrust to escape.',
+            'Hold nose vertical (±45°). Dense atmosphere punishes any tilt.',
+            'Heat builds through 1,200 K — heat shield drops damage by 70%.',
+            'Dodge asteroids past 1,000 m altitude with ← →.',
+            'Reach 5,000 m to clear orbit.',
+        ],
+        dangers: [
+            'Heavy gravity (9.81 m/s²) — low TWR rockets never leave the pad.',
+            'Dense atmosphere → heat damage if no shield.',
+            'Moderate asteroid density throughout the climb.',
+        ],
+        stars: '★ reach 5 km · ★★ >20% fuel · ★★★ >50% fuel',
+    },
+    venus: {
+        type: 'escape',
+        requiredParts:    ['🧑‍🚀 Command Module', '⛽ XL Fuel Tank', '🔥 Engine (consider multiple)', '🛡️ Heat Shield (MANDATORY)', '🔺 Nose Cone'],
+        recommendedParts: ['🪶 Fins', '🔻 Fairing'],
+        minDV:    12000,
+        minTWR:   1.6,
+        flightPlan: [
+            'Full throttle from launch — atmosphere is 90× Earth’s.',
+            'Keep angle within ±15° of vertical. Even small tilt = catastrophic drag.',
+            'Heat will spike above 1,500 K — the shield is the ONLY thing keeping the hull alive.',
+            'Reach 25,000 m to escape. Most builds fail; expect to iterate.',
+        ],
+        dangers: [
+            '🔥 Without a heat shield your rocket WILL burn up.',
+            'Crushing gravity (8.87 m/s²) plus dense air → need huge ΔV.',
+            'Heavy asteroid waves above 5,000 m.',
+        ],
+        stars: '★ reach 25 km · ★★ >15% fuel · ★★★ >35% fuel',
+    },
 };
 
 const ENGINES = {
@@ -1757,6 +1876,9 @@ function openBriefing(planet) {
     if (existingConditions) existingConditions.remove();
     briefTipEl.parentNode.insertAdjacentHTML('afterend', conditionsHTML);
 
+    // Populate Mission Guide sections
+    populateMissionGuide(planet, fromDesign);
+
     // Update button based on where we're coming from
     const btnEl = document.querySelector('#briefingModal .big-btn');
     if (btnEl) {
@@ -1771,6 +1893,55 @@ function openBriefing(planet) {
 
     document.getElementById('briefingOverlay').classList.add('show');
     refresh();
+}
+
+function populateMissionGuide(planet, fromDesign) {
+    const guide = MISSION_GUIDE[planet];
+    if (!guide) return;
+
+    const validation = fromDesign ? getRocketValidation() : null;
+    const currentDV = fromDesign ? getDeltaV() : 0;
+    const currentTWR = fromDesign ? getTWR(planet) : 0;
+
+    const checkPart = (label) => {
+        if (!fromDesign) return `<li>${label}</li>`;
+        let ok = true;
+        if (label.includes('Heat Shield'))                       ok = hasPart('hasHeatShield');
+        else if (label.includes('Landing Legs'))                 ok = hasPart('hasLandingLegs');
+        else if (label.includes('Parachute'))                    ok = hasPart('hasParachute');
+        else if (label.includes('Cockpit') || label.includes('Command')) ok = validation.hasCockpit;
+        else if (label.includes('Fuel Tank') || label.includes('Fuel tank')) ok = validation.hasFuel;
+        else if (label.includes('Engine'))                       ok = validation.hasEngine;
+        else if (label.includes('Nose Cone'))                    ok = rocket.parts.some(p => p.type === 'noseCone');
+        return `<li class="${ok ? 'req-ok' : 'req-miss'}">${ok ? '✓' : '✗'} ${label}</li>`;
+    };
+
+    const dvClass = (currentDV >= guide.minDV) ? 'req-ok' : 'req-miss';
+    const twrClass = (currentTWR >= guide.minTWR) ? 'req-ok' : 'req-miss';
+    const liveStats = fromDesign
+        ? `<div class="stats-line">Your ΔV: <span class="${dvClass}">${currentDV.toFixed(0)} m/s</span> · Your TWR: <span class="${twrClass}">${currentTWR.toFixed(2)}</span></div>`
+        : '';
+
+    document.getElementById('briefRequiredParts').innerHTML = `
+        <h3>🔧 What to Build</h3>
+        <strong>Required:</strong>
+        <ul>${guide.requiredParts.map(checkPart).join('')}</ul>
+        <strong>Recommended:</strong>
+        <ul>${guide.recommendedParts.map(p => `<li>${p}</li>`).join('')}</ul>
+        <div class="stats-line">Minimum ΔV: ~${guide.minDV} m/s · Minimum TWR: ${guide.minTWR}</div>
+        ${liveStats}
+    `;
+
+    document.getElementById('briefFlightPlan').innerHTML = `
+        <h3>🚀 Flight Plan</h3>
+        <ol>${guide.flightPlan.map(s => `<li>${s}</li>`).join('')}</ol>
+        <div class="stars-line">⭐ ${guide.stars}</div>
+    `;
+
+    document.getElementById('briefDangers').innerHTML = `
+        <h3>⚠️ Watch Out For</h3>
+        <ul>${guide.dangers.map(d => `<li>${d}</li>`).join('')}</ul>
+    `;
 }
 
 function closeBriefing() {
