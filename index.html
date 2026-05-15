@@ -519,6 +519,60 @@
             height: 100%;
         }
 
+        /* Mobile touch controls */
+        #touchControls {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            display: none;
+            gap: 8px;
+            pointer-events: auto;
+            z-index: 50;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        #touchControls.active {
+            display: flex;
+        }
+
+        .touch-btn {
+            background: rgba(74, 144, 226, 0.7);
+            border: 2px solid #4a90e2;
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+            transition: all 0.1s;
+            user-select: none;
+            -webkit-touch-callout: none;
+            padding: 0;
+            font-family: inherit;
+        }
+
+        .touch-btn:active, .touch-btn.pressed {
+            background: rgba(74, 144, 226, 1.0);
+            box-shadow: 0 0 8px #4a90e2;
+            transform: scale(0.98);
+        }
+
+        .throttle-btn {
+            width: 120px;
+            height: 60px;
+            line-height: 1.2;
+        }
+
+        .angle-btn {
+            width: 100px;
+            height: 60px;
+            line-height: 1.2;
+            flex: 1;
+            max-width: 100px;
+        }
+
         /* Mobile responsive — phones & tablets under 500px */
         @media (max-width: 500px) {
             .modal {
@@ -609,6 +663,14 @@
         <div id="throttleBar">
             <div id="throttleFill"></div>
             <div id="throttleLabel">THROTTLE: 0%</div>
+        </div>
+
+        <!-- Mobile touch controls -->
+        <div id="touchControls">
+            <button id="btnThrottleUp" class="touch-btn throttle-btn">↑<br>THROTTLE</button>
+            <button id="btnThrottleDown" class="touch-btn throttle-btn">↓<br>THROTTLE</button>
+            <button id="btnAngleLeft" class="touch-btn angle-btn">←<br>ANGLE</button>
+            <button id="btnAngleRight" class="touch-btn angle-btn">→<br>ANGLE</button>
         </div>
 
         <!-- Briefing modal -->
@@ -1067,6 +1129,41 @@ function togglePanel() {
     btn.textContent = panel.classList.contains('hidden') ? '►' : '◄';
 }
 
+// ─── MOBILE TOUCH CONTROLS ────────────────────────────────────────────────
+function setupTouchControls() {
+    const buttonMap = {
+        'btnThrottleUp': 'ArrowUp',
+        'btnThrottleDown': 'ArrowDown',
+        'btnAngleLeft': 'ArrowLeft',
+        'btnAngleRight': 'ArrowRight'
+    };
+
+    Object.keys(buttonMap).forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        const arrowKey = buttonMap[btnId];
+
+        if (!btn) return;
+
+        const startPress = (e) => {
+            e.preventDefault();
+            keys[arrowKey] = true;
+            btn.classList.add('pressed');
+        };
+
+        const endPress = (e) => {
+            e.preventDefault();
+            keys[arrowKey] = false;
+            btn.classList.remove('pressed');
+        };
+
+        btn.addEventListener('touchstart', startPress);
+        btn.addEventListener('touchend', endPress);
+        btn.addEventListener('mousedown', startPress);
+        btn.addEventListener('mouseup', endPress);
+        btn.addEventListener('mouseleave', endPress);
+    });
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────
 function init() {
     canvas = document.getElementById('canvas');
@@ -1131,6 +1228,9 @@ function init() {
     refresh();
     updateStarDisplay();
     updateMissionLocks();
+
+    // Setup touch controls for mobile
+    setupTouchControls();
 
     requestAnimationFrame(loop);
 }
@@ -1219,6 +1319,7 @@ function startMission(planet) {
     document.getElementById('warnings').classList.add('active');
     document.getElementById('throttleBar').classList.add('active');
     document.getElementById('controlsHint').classList.add('active');
+    document.getElementById('touchControls').classList.add('active');
 }
 
 // ─── PHYSICS UPDATE ────────────────────────────────────────────────────────
@@ -1748,6 +1849,7 @@ function resetToDesign() {
     document.getElementById('warnings').classList.remove('active');
     document.getElementById('throttleBar').classList.remove('active');
     document.getElementById('controlsHint').classList.remove('active');
+    document.getElementById('touchControls').classList.remove('active');
     document.getElementById('resultOverlay').classList.remove('show');
 }
 
